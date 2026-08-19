@@ -57,6 +57,13 @@ jobs:
             --non-interactive \
             --output "./build.ipa"
 
+      - name: Upload ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-ipa
+          path: build.ipa
+          if-no-files-found: warn
+
       - name: Submit to TestFlight
         run: |
           if [ ! -f AuthKey_9G25JDJRZR.p8 ]; then
@@ -68,10 +75,3 @@ jobs:
             --profile "${{ inputs.profile }}" \
             --non-interactive \
             --path "./build.ipa"
-
-      - name: Upload ipa artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-build-ipa
-          path: build.ipa
-          if-no-files-found: warn
