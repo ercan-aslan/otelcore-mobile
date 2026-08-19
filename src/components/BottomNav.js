@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../theme';
@@ -31,9 +31,10 @@ const ICON_MAP = {
 
 export default function BottomNav({ items, activeScreen, onNavigate }) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 8);
   const evenLayout = items.length > 0 && items.length <= 6;
-  const sidePad = 12 + Math.max(insets.left, insets.right, 0);
+  const sidePad = 14 + Math.max(insets.left, insets.right, 0);
 
   const renderItem = (item) => {
     const active = activeScreen === item.screen;
@@ -67,11 +68,15 @@ export default function BottomNav({ items, activeScreen, onNavigate }) {
   };
 
   return (
-    <View style={[styles.wrapper, { paddingBottom: bottomPad, paddingHorizontal: sidePad }]}>
+    <View style={[styles.wrapper, { paddingBottom: bottomPad, width }]}>
       {evenLayout ? (
-        <View style={styles.evenRow}>{items.map(renderItem)}</View>
+        <View style={[styles.evenRow, { paddingHorizontal: sidePad }]}>{items.map(renderItem)}</View>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[styles.scrollRow, { paddingHorizontal: sidePad, justifyContent: 'center', flexGrow: 1 }]}
+        >
           {items.map(renderItem)}
         </ScrollView>
       )}
@@ -81,6 +86,7 @@ export default function BottomNav({ items, activeScreen, onNavigate }) {
 
 const styles = StyleSheet.create({
   wrapper: {
+    alignSelf: 'stretch',
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
@@ -91,31 +97,25 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   evenRow: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-evenly',
     paddingTop: 6,
-    gap: 6,
   },
   scrollRow: {
-    paddingHorizontal: 8,
     paddingTop: 6,
-    gap: 10,
     alignItems: 'center',
   },
   item: {
-    minWidth: 44,
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
     paddingVertical: 5,
     borderRadius: 8,
   },
   itemEven: {
-    flexGrow: 0,
-    flexShrink: 1,
-    minWidth: 48,
-    maxWidth: 68,
-    paddingHorizontal: 4,
+    flex: 1,
+    minWidth: 0,
   },
   itemActive: {
     backgroundColor: COLORS.primary,
