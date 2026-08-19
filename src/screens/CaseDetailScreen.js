@@ -1,9 +1,11 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +24,8 @@ import { formatDateTime } from '../utils/format';
 import { showMessage } from '../utils/alert';
 import { CASE_CATS, CASE_PRI, CASE_STATUS, priColor } from './CasesScreen';
 
+const DIM = 'rgba(0,0,0,0.58)';
+
 let ImagePicker = null;
 try {
   ImagePicker = require('expo-image-picker');
@@ -39,7 +43,7 @@ function extensionFromAsset(asset) {
 
 const EVENT_LABEL = {
   created: 'Açıldı',
-  comment: 'Yorum',
+  comment: 'Güncelleme',
   photo: 'Fotoğraf',
   status: 'Durum',
   assign: 'Atama',
@@ -49,10 +53,10 @@ const EVENT_LABEL = {
 
 export default function CaseDetailScreen({ caseId, onClose }) {
   const { openReservation } = useAppNavigation();
-  const scrollRef = useRef(null);
   const [busy, setBusy] = useState('');
   const [comment, setComment] = useState('');
   const [closeNote, setCloseNote] = useState('');
+  const [modal, setModal] = useState(null);
 
   const loader = useCallback(() => CasesAPI.detail(caseId), [caseId]);
   const { data, loading, error, reload } = useFetch(loader);
@@ -119,13 +123,36 @@ export default function CaseDetailScreen({ caseId, onClose }) {
   const color = item.overdue ? COLORS.danger : priColor(item.priority);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.container}>
       <Header onClose={onClose} title={`#${item.case_id}`} loading={Boolean(busy)} />
+      <View style={styles.actionBar}>
+        {closed ? (
+          <AppPressable
+            title="Yeniden aç"
+            color={COLORS.primary}
+            disabled={busy === 'reopen'}
+            onPress={() => run('reopen', () => CasesAPI.reopen(caseId), 'İş yeniden açıldı.')}
+            style={styles.actionBtn}
+          />
+        ) : (
+          <>
+            <AppPressable
+              title="Güncelleme ekle"
+              color={COLORS.primary}
+              onPress={() => setModal('update')}
+              style={styles.actionBtn}
+            />
+            <AppPressable
+              title="Sonuçlandır"
+              color={COLORS.success}
+              onPress={() => setModal('close')}
+              style={styles.actionBtn}
+            />
+          </>
+        )}
+      </View>
+
       <ScrollView
-        ref={scrollRef}
         style={styles.flex}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -218,55 +245,39 @@ export default function CaseDetailScreen({ caseId, onClose }) {
           </View>
         ))}
 
-        {!closed ? (
-          <FormCard title="Kapat" borderColor={COLORS.success}>
-            <FormLabel>Kapanış notu (zorunlu)</FormLabel>
-            <FormInput
-              placeholder="Nasıl sonuçlandı?"
-              value={closeNote}
-              onChangeText={setCloseNote}
-              multiline
-              style={styles.composerInput}
-            />
-            <ConfirmButton
-              label="İş sonuçlandı — kapat"
-              confirmLabel="Evet, kapat"
-              color={COLORS.success}
-              disabled={!closeNote.trim() || busy === 'close'}
-              onConfirm={() => run('close', () => CasesAPI.close(caseId, closeNote), 'İş kapatıldı.')}
-            />
+        {closed && item.close_note ? (
+          <FormCard title="Kapanış notu" borderColor={COLORS.textMuted}>
+            <Text style={styles.body}>{item.close_note}</Text>
           </FormCard>
-        ) : (
-          <FormCard title="Kapandı" borderColor={COLORS.textMuted}>
-            {item.close_note ? <Text style={styles.body}>{item.close_note}</Text> : null}
-            <ConfirmButton
-              label="Yeniden aç"
-              confirmLabel="Aç"
-              color={COLORS.primary}
-              disabled={busy === 'reopen'}
-              onConfirm={() => run('reopen', () => CasesAPI.reopen(caseId), 'İş yeniden açıldı.')}
-            />
-          </FormCard>
-        )}
+        ) : null}
       </ScrollView>
 
-      {!closed ? (
-        <View style={styles.composer}>
-          <FormCard title="Yorum" borderColor={COLORS.primary}>
+      <Modal
+        visible={modal === 'update'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModal(null)}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Pressable style={styles.backdrop} onPress={() => setModal(null)} />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Güncelleme ekle</Text>
             <FormInput
               placeholder="Ne oldu, ne kaldı?"
               value={comment}
               onChangeText={setComment}
               multiline
-              style={styles.composerInput}
+              style={styles.modalInput}
             />
             <SubmitButton
-              title={busy === 'comment' ? '…' : 'Yorum ekle'}
+              title={busy === 'comment' ? '…' : 'Kaydet'}
               disabled={busy === 'comment'}
               onPress={() =>
                 run('comment', async () => {
                   await CasesAPI.comment(caseId, comment);
                   setComment('');
+                  setModal(null);
                 })
               }
             />
@@ -278,10 +289,60 @@ export default function CaseDetailScreen({ caseId, onClose }) {
               onPress={pickPhoto}
               style={{ marginTop: 8 }}
             />
-          </FormCard>
-        </View>
-      ) : null}
-    </KeyboardAvoidingView>
+            <AppPressable
+              title="Vazgeç"
+              color={COLORS.textPrimary}
+              variant="outline"
+              onPress={() => setModal(null)}
+              style={{ marginTop: 8 }}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal
+        visible={modal === 'close'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModal(null)}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Pressable style={styles.backdrop} onPress={() => setModal(null)} />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Sonuçlandır</Text>
+            <FormLabel>Kapanış notu (zorunlu)</FormLabel>
+            <FormInput
+              placeholder="Nasıl sonuçlandı?"
+              value={closeNote}
+              onChangeText={setCloseNote}
+              multiline
+              style={styles.modalInput}
+            />
+            <ConfirmButton
+              label="İş sonuçlandı — kapat"
+              confirmLabel="Evet, kapat"
+              color={COLORS.success}
+              disabled={!closeNote.trim() || busy === 'close'}
+              onConfirm={() =>
+                run('close', async () => {
+                  await CasesAPI.close(caseId, closeNote);
+                  setCloseNote('');
+                  setModal(null);
+                }, 'İş kapatıldı.')
+              }
+            />
+            <AppPressable
+              title="Vazgeç"
+              color={COLORS.textPrimary}
+              variant="outline"
+              onPress={() => setModal(null)}
+              style={{ marginTop: 8 }}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </View>
   );
 }
 
@@ -319,16 +380,42 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary },
   headerSubtitle: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   headerRight: { width: 40, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16, paddingBottom: 16 },
-  composer: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
-    backgroundColor: COLORS.background,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+  actionBar: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  composerInput: { minHeight: 56, maxHeight: 96, textAlignVertical: 'top' },
+  actionBtn: { flex: 1, minHeight: 42 },
+  content: { padding: 16, paddingBottom: 24 },
+  overlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: DIM,
+  },
+  backdrop: { ...StyleSheet.absoluteFillObject },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d0d5dd',
+    padding: 20,
+    zIndex: 1,
+    elevation: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 12 },
+  modalInput: { minHeight: 88, textAlignVertical: 'top', marginBottom: 10 },
   kicker: { fontWeight: '700', fontSize: 12, marginBottom: 4 },
   title: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 8 },
   body: { fontSize: 15, color: COLORS.textPrimary, lineHeight: 22, marginBottom: 12 },

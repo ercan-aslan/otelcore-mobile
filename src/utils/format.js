@@ -613,12 +613,12 @@ export function getChannelStyle(channel, row = null) {
   const record = row && typeof row === 'object' ? row : { channel };
   const color = getCalendarReservationColor(channel, record);
 
-  if (isUnpaidWebHold(record)) {
-    return { label: 'Web — ödeme bekliyor', color };
-  }
-  if (isWebSiteReservation(record)) {
-    return { label: 'Web Sitesi', color };
-  }
+    if (isUnpaidWebHold(record)) {
+      return { label: 'Web Sitesi — ödeme bekliyor', color };
+    }
+    if (isWebSiteReservation(record)) {
+      return { label: 'Web Sitesi', color };
+    }
 
   const raw = String(channel || '').trim();
   const key = raw.toLowerCase();
@@ -637,8 +637,8 @@ export function getChannelStyle(channel, row = null) {
 }
 
 export const CALENDAR_LEGEND = [
-  { color: '#fd7e14', label: 'Web — ödeme bekliyor' },
-  { color: '#9ca3af', label: 'Web — onaylı' },
+  { color: '#fd7e14', label: 'Web Sitesi — ödeme bekliyor' },
+  { color: '#9ca3af', label: 'Web Sitesi — onaylı' },
   { color: '#0d6efd', label: 'OTA / HotelRunner' },
 ];
 

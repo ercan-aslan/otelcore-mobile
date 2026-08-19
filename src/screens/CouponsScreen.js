@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import PageScaffold from '../components/PageScaffold';
-import FormCard, { FormInput, FormLabel } from '../components/FormCard';
+import { FormInput, FormLabel } from '../components/FormCard';
 import DateInput from '../components/DateInput';
 import SelectField, { SubmitButton } from '../components/SelectField';
 import ActionFeedback from '../components/ActionFeedback';
@@ -91,6 +92,7 @@ export default function CouponsScreen() {
     expiry_date: '',
     show_on_website: false,
   });
+  const [formOpen, setFormOpen] = useState(false);
   const [busy, setBusy] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [feedback, setFeedback] = useState({ message: '', type: 'info' });
@@ -124,6 +126,7 @@ export default function CouponsScreen() {
       expiry_date: '',
       show_on_website: false,
     });
+    setFormOpen(false);
     refresh();
   };
 
@@ -218,48 +221,62 @@ export default function CouponsScreen() {
           <Text style={styles.infoBannerText}>🌐 Sitede gösterilen: {websiteInfo.promo_code}</Text>
         </View>
       ) : null}
-      <FormCard title="Oluştur" icon="➕" borderColor={COLORS.primary}>
-        <FormLabel>Kupon Kodu</FormLabel>
-        <FormInput
-          placeholder="Örn: YAZ2024"
-          autoCapitalize="characters"
-          value={form.code}
-          onChangeText={(v) => setForm((p) => ({ ...p, code: v.toUpperCase() }))}
-        />
-        <FormLabel>İndirim Tipi</FormLabel>
-        <SelectField
-          value={form.discount_type}
-          options={DISCOUNT_TYPES}
-          onChange={(v) => setForm((p) => ({ ...p, discount_type: v }))}
-        />
-        <FormLabel>İndirim Değeri</FormLabel>
-        <FormInput
-          placeholder="Örn: 15"
-          keyboardType="decimal-pad"
-          value={form.discount_value}
-          onChangeText={(v) => setForm((p) => ({ ...p, discount_value: v }))}
-        />
-        <FormLabel>Kullanım Limiti (0 = Sınırsız)</FormLabel>
-        <FormInput
-          placeholder="0"
-          keyboardType="number-pad"
-          value={form.usage_limit}
-          onChangeText={(v) => setForm((p) => ({ ...p, usage_limit: v }))}
-        />
-        <FormLabel>Son Kullanma Tarihi</FormLabel>
-        <DateInput
-          value={form.expiry_date}
-          onChangeValue={(v) => setForm((p) => ({ ...p, expiry_date: v }))}
-        />
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Web sitede göster</Text>
-          <Switch
-            value={form.show_on_website}
-            onValueChange={(v) => setForm((p) => ({ ...p, show_on_website: v }))}
-          />
-        </View>
-        <SubmitButton title="💾 Oluştur" loading={busy === 'create'} onPress={onCreate} />
-      </FormCard>
+
+      <View style={styles.drawer}>
+        <Pressable
+          onPress={() => setFormOpen((open) => !open)}
+          style={styles.drawerHead}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: formOpen }}
+        >
+          <Text style={styles.drawerTitle}>Kupon oluştur</Text>
+          <Ionicons name={formOpen ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.accent} />
+        </Pressable>
+        {formOpen ? (
+          <View style={styles.drawerBody}>
+            <FormLabel>Kupon Kodu</FormLabel>
+            <FormInput
+              placeholder="Örn: YAZ2024"
+              autoCapitalize="characters"
+              value={form.code}
+              onChangeText={(v) => setForm((p) => ({ ...p, code: v.toUpperCase() }))}
+            />
+            <FormLabel>İndirim Tipi</FormLabel>
+            <SelectField
+              value={form.discount_type}
+              options={DISCOUNT_TYPES}
+              onChange={(v) => setForm((p) => ({ ...p, discount_type: v }))}
+            />
+            <FormLabel>İndirim Değeri</FormLabel>
+            <FormInput
+              placeholder="Örn: 15"
+              keyboardType="decimal-pad"
+              value={form.discount_value}
+              onChangeText={(v) => setForm((p) => ({ ...p, discount_value: v }))}
+            />
+            <FormLabel>Kullanım Limiti (0 = Sınırsız)</FormLabel>
+            <FormInput
+              placeholder="0"
+              keyboardType="number-pad"
+              value={form.usage_limit}
+              onChangeText={(v) => setForm((p) => ({ ...p, usage_limit: v }))}
+            />
+            <FormLabel>Son Kullanma Tarihi</FormLabel>
+            <DateInput
+              value={form.expiry_date}
+              onChangeValue={(v) => setForm((p) => ({ ...p, expiry_date: v }))}
+            />
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Web sitede göster</Text>
+              <Switch
+                value={form.show_on_website}
+                onValueChange={(v) => setForm((p) => ({ ...p, show_on_website: v }))}
+              />
+            </View>
+            <SubmitButton title="💾 Oluştur" loading={busy === 'create'} onPress={onCreate} />
+          </View>
+        ) : null}
+      </View>
 
       <Text style={styles.listTitle}>📋 Mevcut Kuponlar</Text>
 
@@ -378,4 +395,23 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   emptyText: { color: COLORS.textMuted, fontSize: 14 },
+  drawer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.accent,
+    overflow: 'hidden',
+  },
+  drawerHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  drawerTitle: { fontSize: 14, fontWeight: '700', color: COLORS.accent },
+  drawerBody: { paddingHorizontal: 14, paddingBottom: 14 },
 });
