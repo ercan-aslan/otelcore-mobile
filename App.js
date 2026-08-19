@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   Platform,
   StatusBar,
   StyleSheet,
@@ -178,6 +179,18 @@ function MainShell({ admin, onLogout, branding }) {
   const [reservationDetail, setReservationDetail] = useState(null);
   const [caseDetail, setCaseDetail] = useState(null);
   const [caseBadge, setCaseBadge] = useState(0);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvt, () => setKeyboardOpen(true));
+    const onHide = Keyboard.addListener(hideEvt, () => setKeyboardOpen(false));
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   const navigation = useMemo(
     () => ({
@@ -285,6 +298,7 @@ function MainShell({ admin, onLogout, branding }) {
             </View>
           ) : null}
         </View>
+        {keyboardOpen ? null : (
         <BottomNav
           items={navItems}
           activeScreen={activeScreen}
@@ -294,6 +308,7 @@ function MainShell({ admin, onLogout, branding }) {
             setActiveScreen(screen);
           }}
         />
+        )}
       </SafeScreen>
     </NavigationContext.Provider>
   );

@@ -506,6 +506,7 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         >
           {isPartial ? (
             <View style={styles.previewBanner}>

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -49,9 +49,16 @@ const EVENT_LABEL = {
 
 export default function CaseDetailScreen({ caseId, onClose }) {
   const { openReservation } = useAppNavigation();
+  const scrollRef = useRef(null);
   const [busy, setBusy] = useState('');
   const [comment, setComment] = useState('');
   const [closeNote, setCloseNote] = useState('');
+
+  const scrollActionsIntoView = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, Platform.OS === 'ios' ? 60 : 120);
+  };
 
   const loader = useCallback(() => CasesAPI.detail(caseId), [caseId]);
   const { data, loading, error, reload } = useFetch(loader);
@@ -118,12 +125,20 @@ export default function CaseDetailScreen({ caseId, onClose }) {
   const color = item.overdue ? COLORS.danger : priColor(item.priority);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.container}>
       <Header onClose={onClose} title={`#${item.case_id}`} loading={Boolean(busy)} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+      <ScrollView
+        ref={scrollRef}
+        style={styles.flex}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+      >
         <Text style={[styles.kicker, { color }]}>
           {CASE_STATUS[item.status]} · {CASE_PRI.find((p) => p.value === item.priority)?.label}
           {item.overdue ? ' · Gecikmiş' : ''}
@@ -218,6 +233,7 @@ export default function CaseDetailScreen({ caseId, onClose }) {
               value={comment}
               onChangeText={setComment}
               multiline
+              onFocus={scrollActionsIntoView}
               style={{ minHeight: 72, textAlignVertical: 'top' }}
             />
             <SubmitButton
@@ -249,6 +265,7 @@ export default function CaseDetailScreen({ caseId, onClose }) {
               value={closeNote}
               onChangeText={setCloseNote}
               multiline
+              onFocus={scrollActionsIntoView}
               style={{ minHeight: 72, textAlignVertical: 'top' }}
             />
             <ConfirmButton
@@ -272,7 +289,8 @@ export default function CaseDetailScreen({ caseId, onClose }) {
           </FormCard>
         )}
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -295,6 +313,7 @@ function Header({ onClose, title, loading = false }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  flex: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -309,7 +328,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary },
   headerSubtitle: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   headerRight: { width: 40, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16, paddingBottom: 48 },
   kicker: { fontWeight: '700', fontSize: 12, marginBottom: 4 },
   title: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 8 },
   body: { fontSize: 15, color: COLORS.textPrimary, lineHeight: 22, marginBottom: 12 },

@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.otelcore.app",
-      "buildNumber": "21",
+      "buildNumber": "22",
       "usesAppleSignIn": true,
       "entitlements": {
         "com.apple.developer.applesignin": [
@@ -31,7 +31,7 @@
     },
     "android": {
       "package": "com.otelcore.app",
-      "versionCode": 21,
+      "versionCode": 22,
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",

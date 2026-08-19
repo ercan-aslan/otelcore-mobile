@@ -14,6 +14,8 @@ export default function MarketScreen() {
   const { data, loading, refreshing, error, refresh } = useFetch(loader);
   const payload = data?.data || {};
   const periods = payload.periods || [];
+  const usesDemo = Boolean(payload.uses_demo_data);
+  const showMarket = usesDemo || payload.has_api_key || periods.length > 0;
   const [scanning, setScanning] = useState(false);
 
   const onForceRefresh = async () => {
@@ -33,7 +35,7 @@ export default function MarketScreen() {
     <PageScaffold loading={loading} refreshing={refreshing} error={error} onRefresh={refresh}>
       <Text style={styles.pageTitle}>📈 Piyasa Analizi</Text>
 
-      {!payload.has_api_key ? (
+      {!showMarket ? (
         <View style={styles.noApiBox}>
           <Text style={styles.noApiIcon}>⚠️</Text>
           <Text style={styles.noApiText}>
@@ -43,29 +45,37 @@ export default function MarketScreen() {
         </View>
       ) : (
         <>
-          <View style={styles.scanBar}>
-            <Text style={styles.scanLabel}>
-              Son Veri Tarama:{' '}
-              <Text style={styles.scanValue}>{payload.last_scan || 'Henüz Veri Çekilmedi'}</Text>
-            </Text>
-            <AppPressable
-              color={COLORS.danger}
-              disabled={scanning}
-              onPress={onForceRefresh}
-              style={styles.scanBtn}
-            >
-              <View style={styles.scanBtnInner}>
-                {scanning ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="refresh" size={12} color="#fff" />
-                )}
-                <Text style={styles.scanBtnText}>
-                  {scanning ? ' Taranıyor...' : ' Piyasayı Tarat (4 Kredi)'}
-                </Text>
-              </View>
-            </AppPressable>
-          </View>
+          {usesDemo ? (
+            <View style={styles.demoBox}>
+              <Text style={styles.demoText}>
+                Demo rakip fiyat verisi gösteriliyor. Canlı tarama için SerpApi anahtarı gerekir.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.scanBar}>
+              <Text style={styles.scanLabel}>
+                Son Veri Tarama:{' '}
+                <Text style={styles.scanValue}>{payload.last_scan || 'Henüz Veri Çekilmedi'}</Text>
+              </Text>
+              <AppPressable
+                color={COLORS.danger}
+                disabled={scanning}
+                onPress={onForceRefresh}
+                style={styles.scanBtn}
+              >
+                <View style={styles.scanBtnInner}>
+                  {scanning ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="refresh" size={12} color="#fff" />
+                  )}
+                  <Text style={styles.scanBtnText}>
+                    {scanning ? ' Taranıyor...' : ' Piyasayı Tarat (4 Kredi)'}
+                  </Text>
+                </View>
+              </AppPressable>
+            </View>
+          )}
 
           <View style={styles.regionBar}>
             <Text style={styles.regionText}>
@@ -104,6 +114,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 22,
+  },
+  demoBox: {
+    backgroundColor: '#cff4fc',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  demoText: {
+    color: '#055160',
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 20,
+    textAlign: 'center',
   },
   scanBar: {
     backgroundColor: COLORS.surface,
