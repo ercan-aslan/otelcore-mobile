@@ -1,4 +1,4 @@
-/** Ön Büro — soldan sağa: Takvim, Rezerv., Ödeme, Stok, İşler, Kuponlar, Piyasa */
+/** Ön Büro — alt menü soldan sağa: Takvim, Rezerv., Ödeme, Stok, İşler, Kuponlar, Piyasa */
 export const MOBILE_FRONT_DESK_PERMS = [
   'manage_calendar',
   'manage_reservations',

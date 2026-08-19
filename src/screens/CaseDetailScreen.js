@@ -54,12 +54,6 @@ export default function CaseDetailScreen({ caseId, onClose }) {
   const [comment, setComment] = useState('');
   const [closeNote, setCloseNote] = useState('');
 
-  const scrollActionsIntoView = () => {
-    setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, Platform.OS === 'ios' ? 60 : 120);
-  };
-
   const loader = useCallback(() => CasesAPI.detail(caseId), [caseId]);
   const { data, loading, error, reload } = useFetch(loader);
   const item = data?.data;
@@ -125,19 +119,17 @@ export default function CaseDetailScreen({ caseId, onClose }) {
   const color = item.overdue ? COLORS.danger : priColor(item.priority);
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <Header onClose={onClose} title={`#${item.case_id}`} loading={Boolean(busy)} />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
       <ScrollView
         ref={scrollRef}
         style={styles.flex}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
       >
         <Text style={[styles.kicker, { color }]}>
           {CASE_STATUS[item.status]} · {CASE_PRI.find((p) => p.value === item.priority)?.label}
@@ -227,37 +219,6 @@ export default function CaseDetailScreen({ caseId, onClose }) {
         ))}
 
         {!closed ? (
-          <FormCard title="Yorum" borderColor={COLORS.primary}>
-            <FormInput
-              placeholder="Ne oldu, ne kaldı?"
-              value={comment}
-              onChangeText={setComment}
-              multiline
-              onFocus={scrollActionsIntoView}
-              style={{ minHeight: 72, textAlignVertical: 'top' }}
-            />
-            <SubmitButton
-              title={busy === 'comment' ? '…' : 'Yorum ekle'}
-              disabled={busy === 'comment'}
-              onPress={() =>
-                run('comment', async () => {
-                  await CasesAPI.comment(caseId, comment);
-                  setComment('');
-                })
-              }
-            />
-            <AppPressable
-              title={busy === 'photo' ? 'Yükleniyor…' : 'Fotoğraf ekle'}
-              color={COLORS.textSecondary}
-              variant="outline"
-              disabled={busy === 'photo'}
-              onPress={pickPhoto}
-              style={{ marginTop: 8 }}
-            />
-          </FormCard>
-        ) : null}
-
-        {!closed ? (
           <FormCard title="Kapat" borderColor={COLORS.success}>
             <FormLabel>Kapanış notu (zorunlu)</FormLabel>
             <FormInput
@@ -265,8 +226,7 @@ export default function CaseDetailScreen({ caseId, onClose }) {
               value={closeNote}
               onChangeText={setCloseNote}
               multiline
-              onFocus={scrollActionsIntoView}
-              style={{ minHeight: 72, textAlignVertical: 'top' }}
+              style={styles.composerInput}
             />
             <ConfirmButton
               label="İş sonuçlandı — kapat"
@@ -289,8 +249,39 @@ export default function CaseDetailScreen({ caseId, onClose }) {
           </FormCard>
         )}
       </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+
+      {!closed ? (
+        <View style={styles.composer}>
+          <FormCard title="Yorum" borderColor={COLORS.primary}>
+            <FormInput
+              placeholder="Ne oldu, ne kaldı?"
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              style={styles.composerInput}
+            />
+            <SubmitButton
+              title={busy === 'comment' ? '…' : 'Yorum ekle'}
+              disabled={busy === 'comment'}
+              onPress={() =>
+                run('comment', async () => {
+                  await CasesAPI.comment(caseId, comment);
+                  setComment('');
+                })
+              }
+            />
+            <AppPressable
+              title={busy === 'photo' ? 'Yükleniyor…' : 'Fotoğraf ekle'}
+              color={COLORS.textSecondary}
+              variant="outline"
+              disabled={busy === 'photo'}
+              onPress={pickPhoto}
+              style={{ marginTop: 8 }}
+            />
+          </FormCard>
+        </View>
+      ) : null}
+    </KeyboardAvoidingView>
   );
 }
 
@@ -328,7 +319,16 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary },
   headerSubtitle: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   headerRight: { width: 40, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16, paddingBottom: 48 },
+  content: { padding: 16, paddingBottom: 16 },
+  composer: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 8,
+    backgroundColor: COLORS.background,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  composerInput: { minHeight: 56, maxHeight: 96, textAlignVertical: 'top' },
   kicker: { fontWeight: '700', fontSize: 12, marginBottom: 4 },
   title: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 8 },
   body: { fontSize: 15, color: COLORS.textPrimary, lineHeight: 22, marginBottom: 12 },

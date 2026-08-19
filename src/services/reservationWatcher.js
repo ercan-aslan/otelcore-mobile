@@ -120,6 +120,7 @@ async function checkViaReservationsList(sinceId) {
 /** Takvimde yeni rezervasyon, iptal veya hold değişimi var mı kontrol et */
 export async function watchForNewReservations() {
   const sinceId = await getBaselineReservationId();
+  let calendarChanged = false;
   let startDate = '';
   try {
     startDate = (await AsyncStorage.getItem(STORAGE_CALENDAR_START_KEY)) || '';
@@ -129,12 +130,7 @@ export async function watchForNewReservations() {
 
   try {
     const viaCalendar = await checkViaCalendarRevision(startDate || undefined);
-    if (viaCalendar.maxId > sinceId) {
-      await saveLatestReservationId(viaCalendar.maxId);
-    }
-    if (viaCalendar.changed) {
-      return { found: true, items: viaCalendar.items, source: 'calendar' };
-    }
+    calendarChanged = viaCalendar.changed;
   } catch {
     // Takvim API hatası — diğer yöntemlere düş
   }
@@ -161,6 +157,10 @@ export async function watchForNewReservations() {
     }
   } catch {
     // Liste API hatası
+  }
+
+  if (calendarChanged) {
+    return { found: true, items: [], source: 'calendar' };
   }
 
   return { found: false, items: [], source: 'none' };

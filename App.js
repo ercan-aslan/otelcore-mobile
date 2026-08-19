@@ -133,13 +133,7 @@ function PushManager({ onOpenReservation }) {
           onOpenRef.current?.(pendingId);
         }
 
-        stopPolling = startReservationPolling((item) => {
-          const status = String(item?.status || '').toLowerCase().trim();
-          if (['cancelled', 'canceled', 'blocked', 'iptal', 'iptal edildi'].includes(status)) {
-            return;
-          }
-          onOpenRef.current?.(Number(item.reservation_id || item.id));
-        });
+        stopPolling = startReservationPolling({ enableLocalAlerts: true });
       } catch (error) {
         console.warn('PushManager setup failed', error);
       }
