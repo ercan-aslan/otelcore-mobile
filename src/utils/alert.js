@@ -20,6 +20,32 @@ export function showMessage(title, message) {
   Alert.alert(title, message || '');
 }
 
+export function showPrompt(title, message, onConfirm, options = {}) {
+  const {
+    placeholder = '',
+    cancelText = 'Vazgeç',
+    confirmText = 'Tamam',
+    destructive = false,
+    minLength = 5,
+  } = options;
+
+  if (dialogApi?.prompt) {
+    dialogApi.prompt({
+      title,
+      message,
+      placeholder,
+      confirmText,
+      cancelText,
+      destructive,
+      minLength,
+      onConfirm,
+    });
+    return;
+  }
+
+  showConfirm(title, message, () => onConfirm?.(''), { cancelText, confirmText, destructive });
+}
+
 export function showConfirm(title, message, onConfirm, options = {}) {
   const {
     cancelText = 'İptal',

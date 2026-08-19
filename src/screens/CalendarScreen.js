@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
   row2: { flexDirection: 'row', gap: 8 },
   half: { flex: 1 },
   quickWrap: { flex: 1, justifyContent: 'flex-end' },
-  quickBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  quickBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.58)' },
   quickSheet: {
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: 16,

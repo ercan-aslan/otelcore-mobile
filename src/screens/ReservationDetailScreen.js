@@ -24,7 +24,7 @@ import {
   nightsBetweenIso,
   resolveReservationCurrency,
 } from '../utils/format';
-import { showMessage } from '../utils/alert';
+import { showMessage, showPrompt } from '../utils/alert';
 
 function money(res, amount) {
   return formatMoney(amount, resolveReservationCurrency(res));
@@ -377,8 +377,22 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
     }
   };
 
-  const onCancel = () =>
-    runAction('cancel', { cancel_reason: 'Mobil admin iptali' }, 'Rezervasyon iptal edildi.');
+  const onCancel = () => {
+    showPrompt(
+      'Rezervasyonu iptal et',
+      'İptal nedenini yazın. Bu alan zorunludur (en az 5 karakter).',
+      (reason) => {
+        runAction('cancel', { cancel_reason: reason }, 'Rezervasyon iptal edildi.');
+      },
+      {
+        placeholder: 'Örn: Misafir iptal etti, tarih değişikliği…',
+        confirmText: 'İptal et',
+        cancelText: 'Vazgeç',
+        destructive: true,
+        minLength: 5,
+      }
+    );
+  };
 
   const onRestore = () =>
     runAction('restore', {}, 'Rezervasyon geri alındı.');
@@ -710,13 +724,11 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
                 loading={busy === 'check_out'}
                 onPress={() => runAction('check_out')}
               />
-              <ConfirmButton
-                label="Rezervasyonu İptal Et"
-                confirmLabel="Evet, iptal et"
-                cancelLabel="Vazgeç"
+              <SubmitButton
+                title="Rezervasyonu İptal Et"
                 color={COLORS.danger}
-                busy={busy === 'cancel'}
-                onConfirm={onCancel}
+                loading={busy === 'cancel'}
+                onPress={onCancel}
               />
             </View>
           ) : null}

@@ -33,7 +33,7 @@ export default function BottomNav({ items, activeScreen, onNavigate }) {
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 8);
   const evenLayout = items.length > 0 && items.length <= 6;
-  const sidePad = 16 + Math.max(insets.left, insets.right, 0);
+  const sidePad = 12 + Math.max(insets.left, insets.right, 0);
 
   const renderItem = (item) => {
     const active = activeScreen === item.screen;
@@ -52,7 +52,7 @@ export default function BottomNav({ items, activeScreen, onNavigate }) {
         activeOpacity={0.7}
       >
         <View>
-          <Ionicons name={ICON_MAP[item.icon] || 'ellipse'} size={active ? 21 : 20} color={color} />
+          <Ionicons name={ICON_MAP[item.icon] || 'ellipse'} size={active ? 18 : 17} color={color} />
           {item.badge ? (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{item.badge > 99 ? '99+' : String(item.badge)}</Text>
@@ -67,9 +67,9 @@ export default function BottomNav({ items, activeScreen, onNavigate }) {
   };
 
   return (
-    <View style={[styles.wrapper, { paddingBottom: bottomPad }]}>
+    <View style={[styles.wrapper, { paddingBottom: bottomPad, paddingHorizontal: sidePad }]}>
       {evenLayout ? (
-        <View style={[styles.evenRow, { paddingHorizontal: sidePad }]}>{items.map(renderItem)}</View>
+        <View style={styles.evenRow}>{items.map(renderItem)}</View>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollRow}>
           {items.map(renderItem)}
@@ -94,26 +94,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
-    gap: 4,
+    paddingTop: 6,
+    gap: 3,
   },
   scrollRow: {
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    gap: 15,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    gap: 10,
     alignItems: 'center',
   },
   item: {
-    minWidth: 56,
+    minWidth: 44,
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   itemEven: {
     flex: 1,
     minWidth: 0,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
   itemActive: {
     backgroundColor: COLORS.primary,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.danger,
   },
   label: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '600',
     marginTop: 3,
     textAlign: 'center',

@@ -11,7 +11,7 @@ import { useFetch } from '../hooks/useFetch';
 import { useAppNavigation } from '../context/NavigationContext';
 import { COLORS } from '../theme';
 import { EXPLORE_TYPES, STATUS_LABELS } from '../utils/format';
-import { showMessage } from '../utils/alert';
+import { showMessage, showConfirm } from '../utils/alert';
 
 const INVENTORY_STATUSES = [
   { key: 'needed', label: 'İhtiyaç', color: COLORS.danger },
@@ -183,35 +183,52 @@ export function InventoryScreen() {
                   : COLORS.success
             }
           >
-            <Text style={styles.title}>{item.item_name}</Text>
-            <Text style={styles.meta}>Miktar: {item.quantity}</Text>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{STATUS_LABELS[item.status] || item.status}</Text>
-            </View>
-            <View style={styles.statusRow}>
-              {INVENTORY_STATUSES.map((s) => (
+            <View style={styles.stockHead}>
+              <View style={styles.stockInfo}>
+                <Text style={styles.title} numberOfLines={2}>{item.item_name}</Text>
+                <View style={styles.stockMetaRow}>
+                  <Text style={styles.meta}>Miktar: {item.quantity}</Text>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{STATUS_LABELS[item.status] || item.status}</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.statusRow}>
+                {INVENTORY_STATUSES.map((s) => (
+                  <AppPressable
+                    key={s.key}
+                    title={s.label}
+                    color={s.color}
+                    variant={item.status === s.key ? 'solid' : 'outline'}
+                    disabled={busyId === item.inventory_id}
+                    onPress={() => changeStatus(item, s.key)}
+                    style={styles.statusBtn}
+                    textStyle={styles.statusBtnText}
+                  />
+                ))}
                 <AppPressable
-                  key={s.key}
-                  title={s.label}
-                  color={s.color}
-                  variant={item.status === s.key ? 'solid' : 'outline'}
+                  title="Sil"
+                  color={COLORS.danger}
+                  variant="outline"
                   disabled={busyId === item.inventory_id}
-                  onPress={() => changeStatus(item, s.key)}
+                  onPress={() =>
+                    showConfirm(
+                      'Ürünü sil',
+                      `"${item.item_name}" silinsin mi?`,
+                      () =>
+                        runResourceAction(
+                          () => InventoryAPI.remove(item.inventory_id),
+                          bump,
+                          'Ürün silindi.'
+                        ),
+                      { confirmText: 'Sil', cancelText: 'Vazgeç', destructive: true }
+                    )
+                  }
                   style={styles.statusBtn}
+                  textStyle={styles.statusBtnText}
                 />
-              ))}
+              </View>
             </View>
-            <ActionRow
-              actions={[
-                {
-                  label: 'Sil',
-                  color: COLORS.danger,
-                  delete: true,
-                  onPress: () =>
-                    runResourceAction(() => InventoryAPI.remove(item.inventory_id), bump, 'Ürün silindi.'),
-                },
-              ]}
-            />
           </MobileCard>
         ))
       )}
@@ -760,29 +777,36 @@ export function StaffScreen() {
 
 const styles = StyleSheet.create({
   empty: { color: COLORS.textMuted, textAlign: 'center', padding: 24 },
-  title: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
-  meta: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4 },
+  title: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  meta: { fontSize: 12, color: COLORS.textSecondary },
   hint: { fontSize: 12, color: COLORS.textMuted, marginTop: 8, fontStyle: 'italic' },
   discount: { fontSize: 18, fontWeight: '800', color: COLORS.success, marginTop: 6 },
+  stockHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  stockInfo: { flex: 1, minWidth: 0 },
+  stockMetaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   badge: {
     alignSelf: 'flex-start',
     backgroundColor: COLORS.primary,
     borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginTop: 6,
-  },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  statusRow: { flexDirection: 'row', gap: 4, marginTop: 6, flexWrap: 'wrap' },
-  statusBtn: {
-    borderWidth: 1,
-    borderRadius: 6,
     paddingHorizontal: 6,
-    paddingVertical: 4,
-    minHeight: 32,
-    minWidth: 0,
+    paddingVertical: 2,
   },
-  statusBtnText: { fontSize: 11, fontWeight: '700', color: COLORS.textPrimary },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  statusRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: 4,
+    maxWidth: '58%',
+  },
+  statusBtn: {
+    minHeight: 28,
+    minWidth: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  statusBtnText: { fontSize: 10, fontWeight: '700' },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' },
   actionBtn: {
     borderWidth: 1,
