@@ -28,9 +28,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web --port 8082",
-    "build:apk": "npx --yes eas-cli@latest build -p android --profile preview --non-interactive",
-    "build:ios": "npx --yes eas-cli@latest build -p ios --profile production --non-interactive",
-    "submit:ios": "npx --yes eas-cli@latest submit -p ios --profile production --non-interactive --latest"
+    "build:apk": "echo Use GitHub Actions local build, not Expo cloud. && exit 1",
+    "build:ios": "echo Use GitHub Actions: ercan-aslan/otelcore-mobile ios-local-testflight && exit 1",
+    "submit:ios": "echo Use GitHub Actions submit step, not Expo cloud. && exit 1"
   },
   "private": true
 }
