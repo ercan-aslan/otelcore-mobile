@@ -93,9 +93,9 @@ const styles = StyleSheet.create({
   evenRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingTop: 6,
-    gap: 3,
+    gap: 6,
   },
   scrollRow: {
     paddingHorizontal: 8,
@@ -111,9 +111,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   itemEven: {
-    flex: 1,
-    minWidth: 0,
-    paddingHorizontal: 2,
+    flexGrow: 0,
+    flexShrink: 1,
+    minWidth: 48,
+    maxWidth: 68,
+    paddingHorizontal: 4,
   },
   itemActive: {
     backgroundColor: COLORS.primary,

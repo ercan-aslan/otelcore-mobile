@@ -21,7 +21,7 @@ const TAB_META = {
   cikis: { label: 'Çıkışlar', shortLabel: 'Çıkış', color: COLORS.info },
   yeni: { label: 'Bugün Gelen', shortLabel: 'Yeni', color: '#ffc107' },
   coklu: { label: 'Çoklu Rez.', shortLabel: 'Çoklu', color: COLORS.danger, danger: true },
-  atanmamis: { label: 'Seçilmemiş oda', shortLabel: 'Oda no', color: '#fd7e14' },
+  atanmamis: { label: 'Oda eklenmemiş', shortLabel: 'Oda yok', color: '#fd7e14' },
 };
 
 function SummaryRow({ item, onPress, showCreatedAt = false, onAssigned }) {
@@ -109,7 +109,7 @@ export default function CalendarSummaryScreen({ initialTab = 'giris', onClose, o
     cikis: 'Bugün çıkış yapacak misafir yok.',
     yeni: 'Bugün oluşturulan yeni rezervasyon yok.',
     coklu: 'Aktif kayıtlarda çoklu rezervasyon yok.',
-    atanmamis: 'Kapı numarası seçilmemiş rezervasyon yok.',
+    atanmamis: 'Oda eklenmemiş rezervasyon yok.',
   };
 
   const handleOpenReservation = (item) => {

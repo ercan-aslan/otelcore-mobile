@@ -330,7 +330,7 @@ export default function CalendarScreen({ isFocused = true }) {
           onPress={() => setSummaryTab('yeni')}
         />
         <StatBox
-          label="SEÇİLMEMİŞ"
+          label="ODA EKLENMEMİŞ"
           value={(stats.unassigned ?? 0) > 0 ? String(stats.unassigned) : 'Yok'}
           bg={(stats.unassigned ?? 0) > 0 ? '#fd7e14' : COLORS.textSecondary}
           onPress={() => setSummaryTab('atanmamis')}
