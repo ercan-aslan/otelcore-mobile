@@ -1,8 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import PageScaffold from '../components/PageScaffold';
 import MobileCard from '../components/MobileCard';
-import FormCard, { FormInput } from '../components/FormCard';
+import FormCard, { FormInput, FormLabel } from '../components/FormCard';
+import DateInput from '../components/DateInput';
 import { SubmitButton } from '../components/SelectField';
 import TabPills from '../components/TabPills';
 import AppPressable, { DeleteButton } from '../components/AppPressable';
@@ -13,11 +15,27 @@ import { COLORS } from '../theme';
 import { EXPLORE_TYPES, STATUS_LABELS } from '../utils/format';
 import { showMessage, showConfirm } from '../utils/alert';
 
-const INVENTORY_STATUSES = [
-  { key: 'needed', label: 'İhtiyaç', color: COLORS.danger },
-  { key: 'ordered', label: 'Sipariş', color: COLORS.warning },
-  { key: 'in_stock', label: 'Stokta', color: COLORS.success },
-];
+const DIM = 'rgba(0,0,0,0.58)';
+
+function InventoryModal({ visible, title, onClose, children }) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <View style={styles.modalCard}>
+          <Text style={styles.modalTitle}>{title}</Text>
+          {children}
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+function costText(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? String(n) : '';
+}
 
 function ActionRow({ actions = [] }) {
   return (
@@ -87,20 +105,90 @@ export function InventoryScreen() {
   const [busyId, setBusyId] = useState(null);
   const [form, setForm] = useState({ item_name: '', quantity: '0' });
   const [creating, setCreating] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [tab, setTab] = useState('critical');
+  const [modal, setModal] = useState(null);
+  const [draft, setDraft] = useState({ quantity: '', supplier: '', cost: '', eta: '' });
 
   const bump = () => setTick((t) => t + 1);
 
-  const changeStatus = async (item, status) => {
-    setBusyId(item.inventory_id);
+  const openModal = (type, item) => {
+    setDraft({
+      quantity: type === 'receive' ? String(item.order_qty || '') : '',
+      supplier: type === 'receive' ? String(item.order_supplier || '') : '',
+      cost: type === 'receive' ? costText(item.order_cost ?? item.last_purchase_cost) : '',
+      eta: '',
+    });
+    setModal({ type, item });
+  };
+
+  const closeModal = () => setModal(null);
+
+  const runSave = async (fn, successMsg, nextTab) => {
+    const id = modal?.item?.inventory_id;
+    if (!id) return;
+    setBusyId(id);
     try {
-      await InventoryAPI.updateStatus(item.inventory_id, status);
+      await fn(id);
+      closeModal();
+      if (nextTab) setTab(nextTab);
       bump();
+      showMessage('Başarılı', successMsg);
     } catch (err) {
-      showMessage('Hata', err.message || 'Durum güncellenemedi.');
+      showMessage('Hata', err.message || 'Kaydedilemedi.');
     } finally {
       setBusyId(null);
     }
+  };
+
+  const onPlaceOrder = () => {
+    const qty = Number(draft.quantity || 0);
+    if (qty <= 0 || !draft.supplier.trim()) {
+      showMessage('Eksik alan', 'Adet ve nereden alındığı zorunludur.');
+      return;
+    }
+    runSave(
+      (id) =>
+        InventoryAPI.placeOrder(id, {
+          quantity: qty,
+          supplier: draft.supplier.trim(),
+          cost: draft.cost,
+          eta: draft.eta || '',
+        }),
+      'Sipariş kaydedildi.',
+      'orders'
+    );
+  };
+
+  const onReceive = () => {
+    const qty = Number(draft.quantity || 0);
+    if (qty <= 0) {
+      showMessage('Eksik alan', 'Teslim adedi zorunludur.');
+      return;
+    }
+    runSave(
+      (id) => InventoryAPI.receiveOrder(id, { quantity: qty, cost: draft.cost }),
+      'Teslim alındı.',
+      'stock'
+    );
+  };
+
+  const onAddStock = () => {
+    const qty = Number(draft.quantity || 0);
+    if (qty <= 0 || !draft.supplier.trim()) {
+      showMessage('Eksik alan', 'Adet ve nereden alındığı zorunludur.');
+      return;
+    }
+    runSave(
+      (id) =>
+        InventoryAPI.addStock(id, {
+          quantity: qty,
+          supplier: draft.supplier.trim(),
+          cost: draft.cost,
+        }),
+      'Stok güncellendi.',
+      'stock'
+    );
   };
 
   const onCreate = async () => {
@@ -110,8 +198,9 @@ export function InventoryScreen() {
     }
     setCreating(true);
     try {
-      await InventoryAPI.create(form.item_name.trim(), Number(form.quantity || 0), 'needed');
+      await InventoryAPI.create(form.item_name.trim(), Number(form.quantity || 0));
       setForm({ item_name: '', quantity: '0' });
+      setFormOpen(false);
       bump();
       showMessage('Başarılı', 'Ürün eklendi.');
     } catch (err) {
@@ -124,13 +213,17 @@ export function InventoryScreen() {
   const loader = useCallback(() => ResourceAPI.get('inventory'), [tick]);
   const { data, loading, refreshing, error, refresh } = useFetch(loader);
   const allItems = data?.data || [];
-
-  const items = tab === 'stock' ? allItems.filter((i) => i.status === 'in_stock') : allItems.filter((i) => i.status !== 'in_stock');
+  const items =
+    tab === 'stock'
+      ? allItems.filter((i) => i.status === 'in_stock')
+      : tab === 'orders'
+        ? allItems.filter((i) => i.status === 'ordered')
+        : allItems.filter((i) => i.status === 'needed');
 
   return (
     <PageScaffold
-      title="📦 Kritik stok"
-      subtitle="Kritikler / Stoktakiler"
+      title="📦 Stok"
+      subtitle="Kritik · Sipariş · Stok"
       loading={loading}
       refreshing={refreshing}
       error={error}
@@ -138,8 +231,9 @@ export function InventoryScreen() {
       headerExtra={
         <TabPills
           tabs={[
-            { key: 'critical', label: 'Kritikler', shortLabel: 'Kritikler' },
-            { key: 'stock', label: 'Stoktakiler', shortLabel: 'Stokta' },
+            { key: 'critical', label: 'Kritikler', shortLabel: 'Kritik' },
+            { key: 'orders', label: 'Sipariş', shortLabel: 'Sipariş' },
+            { key: 'stock', label: 'Stoktakiler', shortLabel: 'Stok' },
           ]}
           activeKey={tab}
           onChange={setTab}
@@ -154,23 +248,38 @@ export function InventoryScreen() {
         style={{ marginBottom: 10 }}
       />
 
-      <FormCard title="Yeni ürün ekle" icon="➕" borderColor={COLORS.primary}>
-        <FormInput
-          placeholder="Ürün adı"
-          value={form.item_name}
-          onChangeText={(v) => setForm((p) => ({ ...p, item_name: v }))}
-        />
-        <FormInput
-          placeholder="Miktar"
-          keyboardType="number-pad"
-          value={form.quantity}
-          onChangeText={(v) => setForm((p) => ({ ...p, quantity: v }))}
-        />
-        <SubmitButton title="Ekle" loading={creating} onPress={onCreate} />
-      </FormCard>
+      <View style={styles.drawer}>
+        <Pressable
+          onPress={() => setFormOpen((open) => !open)}
+          style={styles.drawerHead}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: formOpen }}
+        >
+          <Text style={styles.drawerTitle}>Yeni ürün ekle</Text>
+          <Ionicons name={formOpen ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.accent} />
+        </Pressable>
+        {formOpen ? (
+          <View style={styles.drawerBody}>
+            <FormInput
+              placeholder="Ürün adı"
+              value={form.item_name}
+              onChangeText={(v) => setForm((p) => ({ ...p, item_name: v }))}
+            />
+            <FormInput
+              placeholder="Miktar"
+              keyboardType="number-pad"
+              value={form.quantity}
+              onChangeText={(v) => setForm((p) => ({ ...p, quantity: v }))}
+            />
+            <SubmitButton title="Ekle" loading={creating} onPress={onCreate} />
+          </View>
+        ) : null}
+      </View>
 
       {items.length === 0 ? (
-        <Text style={styles.empty}>{tab === 'stock' ? 'Stokta kayıt yok.' : 'Kritik kayıt yok.'}</Text>
+        <Text style={styles.empty}>
+          {tab === 'stock' ? 'Stokta kayıt yok.' : tab === 'orders' ? 'Açık sipariş yok.' : 'Kritik kayıt yok.'}
+        </Text>
       ) : (
         items.map((item) => (
           <MobileCard
@@ -186,52 +295,138 @@ export function InventoryScreen() {
             <View style={styles.stockHead}>
               <View style={styles.stockInfo}>
                 <Text style={styles.title} numberOfLines={2}>{item.item_name}</Text>
-                <View style={styles.stockMetaRow}>
-                  <Text style={styles.meta}>Miktar: {item.quantity}</Text>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{STATUS_LABELS[item.status] || item.status}</Text>
-                  </View>
-                </View>
+                <Text style={styles.meta}>
+                  Stok: {item.quantity} {item.unit || 'adet'} · min {item.min_quantity ?? 5}
+                </Text>
+                {item.status === 'ordered' ? (
+                  <Text style={styles.meta}>
+                    Sipariş: {item.order_qty || '—'}
+                    {item.order_supplier ? ` · ${item.order_supplier}` : ''}
+                    {Number(item.order_cost) > 0 ? ` · ${item.order_cost} TL` : ''}
+                    {item.order_eta ? ` · ${item.order_eta}` : ''}
+                  </Text>
+                ) : null}
               </View>
-              <View style={styles.statusRow}>
-                {INVENTORY_STATUSES.map((s) => (
-                  <AppPressable
-                    key={s.key}
-                    title={s.label}
-                    color={s.color}
-                    variant={item.status === s.key ? 'solid' : 'outline'}
-                    disabled={busyId === item.inventory_id}
-                    onPress={() => changeStatus(item, s.key)}
-                    style={styles.statusBtn}
-                    textStyle={styles.statusBtnText}
-                  />
-                ))}
+              {tab === 'critical' ? (
                 <AppPressable
-                  title="Sil"
-                  color={COLORS.danger}
-                  variant="outline"
+                  title="Sipariş ver"
+                  color={COLORS.warning}
                   disabled={busyId === item.inventory_id}
-                  onPress={() =>
-                    showConfirm(
-                      'Ürünü sil',
-                      `"${item.item_name}" silinsin mi?`,
-                      () =>
-                        runResourceAction(
-                          () => InventoryAPI.remove(item.inventory_id),
-                          bump,
-                          'Ürün silindi.'
-                        ),
-                      { confirmText: 'Sil', cancelText: 'Vazgeç', destructive: true }
-                    )
-                  }
+                  onPress={() => openModal('order', item)}
                   style={styles.statusBtn}
                   textStyle={styles.statusBtnText}
                 />
-              </View>
+              ) : null}
+              {tab === 'orders' ? (
+                <AppPressable
+                  title="Teslim alındı"
+                  color={COLORS.success}
+                  disabled={busyId === item.inventory_id}
+                  onPress={() => openModal('receive', item)}
+                  style={styles.statusBtn}
+                  textStyle={styles.statusBtnText}
+                />
+              ) : null}
+              {tab === 'stock' ? (
+                <AppPressable
+                  title="Stok ekle"
+                  color={COLORS.primary}
+                  disabled={busyId === item.inventory_id}
+                  onPress={() => openModal('add', item)}
+                  style={styles.statusBtn}
+                  textStyle={styles.statusBtnText}
+                />
+              ) : null}
             </View>
           </MobileCard>
         ))
       )}
+
+      <InventoryModal
+        visible={modal?.type === 'order'}
+        title="Sipariş ver"
+        onClose={closeModal}
+      >
+        <FormLabel>Adet</FormLabel>
+        <FormInput
+          placeholder="Kaç adet"
+          keyboardType="number-pad"
+          value={draft.quantity}
+          onChangeText={(v) => setDraft((p) => ({ ...p, quantity: v }))}
+        />
+        <FormLabel>Nereden</FormLabel>
+        <FormInput
+          placeholder="Tedarikçi / mağaza"
+          value={draft.supplier}
+          onChangeText={(v) => setDraft((p) => ({ ...p, supplier: v }))}
+        />
+        <FormLabel>Tutar (TL)</FormLabel>
+        <FormInput
+          placeholder="Opsiyonel"
+          keyboardType="decimal-pad"
+          value={draft.cost}
+          onChangeText={(v) => setDraft((p) => ({ ...p, cost: v }))}
+        />
+        <FormLabel>Tahmini geliş (zorunlu değil)</FormLabel>
+        <DateInput value={draft.eta} onChangeValue={(v) => setDraft((p) => ({ ...p, eta: v || '' }))} />
+        <SubmitButton title="Kaydet" loading={busyId != null} onPress={onPlaceOrder} />
+        <AppPressable title="Vazgeç" color={COLORS.textPrimary} variant="outline" onPress={closeModal} style={{ marginTop: 8 }} />
+      </InventoryModal>
+
+      <InventoryModal
+        visible={modal?.type === 'receive'}
+        title="Teslim alındı"
+        onClose={closeModal}
+      >
+        {modal?.item?.order_supplier ? (
+          <Text style={styles.meta}>Sipariş: {modal.item.order_supplier}</Text>
+        ) : null}
+        <FormLabel>Adet</FormLabel>
+        <FormInput
+          placeholder="Kaç adet teslim alındı"
+          keyboardType="number-pad"
+          value={draft.quantity}
+          onChangeText={(v) => setDraft((p) => ({ ...p, quantity: v }))}
+        />
+        <FormLabel>Satın alma ücreti (TL)</FormLabel>
+        <FormInput
+          placeholder={costText(modal?.item?.order_cost) ? String(modal.item.order_cost) : 'Boş bırakılabilir'}
+          keyboardType="decimal-pad"
+          value={draft.cost}
+          onChangeText={(v) => setDraft((p) => ({ ...p, cost: v }))}
+        />
+        <SubmitButton title="Kaydet" loading={busyId != null} onPress={onReceive} />
+        <AppPressable title="Vazgeç" color={COLORS.textPrimary} variant="outline" onPress={closeModal} style={{ marginTop: 8 }} />
+      </InventoryModal>
+
+      <InventoryModal
+        visible={modal?.type === 'add'}
+        title="Stok ekle"
+        onClose={closeModal}
+      >
+        <FormLabel>Adet</FormLabel>
+        <FormInput
+          placeholder="Kaç adet"
+          keyboardType="number-pad"
+          value={draft.quantity}
+          onChangeText={(v) => setDraft((p) => ({ ...p, quantity: v }))}
+        />
+        <FormLabel>Nereden</FormLabel>
+        <FormInput
+          placeholder="Tedarikçi / mağaza"
+          value={draft.supplier}
+          onChangeText={(v) => setDraft((p) => ({ ...p, supplier: v }))}
+        />
+        <FormLabel>Tutar (TL)</FormLabel>
+        <FormInput
+          placeholder="Opsiyonel"
+          keyboardType="decimal-pad"
+          value={draft.cost}
+          onChangeText={(v) => setDraft((p) => ({ ...p, cost: v }))}
+        />
+        <SubmitButton title="Kaydet" loading={busyId != null} onPress={onAddStock} />
+        <AppPressable title="Vazgeç" color={COLORS.textPrimary} variant="outline" onPress={closeModal} style={{ marginTop: 8 }} />
+      </InventoryModal>
     </PageScaffold>
   );
 }
@@ -783,6 +978,45 @@ const styles = StyleSheet.create({
   discount: { fontSize: 18, fontWeight: '800', color: COLORS.success, marginTop: 6 },
   stockHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   stockInfo: { flex: 1, minWidth: 0 },
+  overlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: DIM,
+  },
+  backdrop: { ...StyleSheet.absoluteFillObject },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d0d5dd',
+    padding: 20,
+    zIndex: 1,
+    elevation: 16,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 12 },
+  drawer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.accent,
+    overflow: 'hidden',
+  },
+  drawerHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  drawerTitle: { fontSize: 14, fontWeight: '700', color: COLORS.accent },
+  drawerBody: { paddingHorizontal: 14, paddingBottom: 14 },
   stockMetaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   badge: {
     alignSelf: 'flex-start',

@@ -745,10 +745,20 @@ export const InventoryAPI = {
         status,
       }),
     }),
-  updateStatus: (inventoryId, status) =>
+  placeOrder: (inventoryId, payload) =>
     apiRequest('/inventory_actions', {
       method: 'POST',
-      body: JSON.stringify({ action: 'update_status', inventory_id: inventoryId, status }),
+      body: JSON.stringify({ action: 'place_order', inventory_id: inventoryId, ...payload }),
+    }),
+  receiveOrder: (inventoryId, payload) =>
+    apiRequest('/inventory_actions', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'receive_order', inventory_id: inventoryId, ...payload }),
+    }),
+  addStock: (inventoryId, payload) =>
+    apiRequest('/inventory_actions', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'add_stock', inventory_id: inventoryId, ...payload }),
     }),
   remove: (inventoryId) =>
     apiRequest('/inventory_actions', {
