@@ -1,0 +1,6 @@
+android/
+ios/
+web/
+*.bat
+AuthKey_*.p8
+node_modules/

@@ -1,0 +1,8 @@
+node_modules/
+android/app/build/
+android/build/
+ios/
+AuthKey_*.p8
+*.apk
+*.aab
+.expo/

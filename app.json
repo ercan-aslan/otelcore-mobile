@@ -1,0 +1,85 @@
+{
+  "expo": {
+    "name": "OtelCore",
+    "slug": "otelcore-mobile",
+    "version": "1.0.14",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "otelcore",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1d3557"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.otelcore.app",
+      "buildNumber": "16",
+      "usesAppleSignIn": true,
+      "entitlements": {
+        "com.apple.developer.applesignin": [
+          "Default"
+        ]
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Uygulamaya Face ID ile giriş yapmak için kullanılır.",
+        "NSCameraUsageDescription": "Kimlik ve oda fotoğrafı için kamera erişimi gerekir.",
+        "NSPhotoLibraryUsageDescription": "Kimlik ve oda fotoğrafı için galeri erişimi gerekir."
+      }
+    },
+    "android": {
+      "package": "com.otelcore.app",
+      "versionCode": 16,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS",
+        "INTERNET",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#1d3557",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Uygulamaya Face ID ile giriş yapmak için kullanılır."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1d3557",
+          "defaultChannel": "default"
+        }
+      ]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single",
+      "meta": {
+        "viewport": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+      }
+    },
+    "extra": {
+      "siteUrl": "https://tr.otelcore.com",
+      "eas": {
+        "projectId": "ace2f726-834e-4e92-a193-f6db61c843fb"
+      }
+    },
+    "owner": "ercanaslan3"
+  }
+}
