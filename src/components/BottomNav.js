@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../theme';
@@ -33,53 +33,41 @@ export default function BottomNav({ items, activeScreen, onNavigate }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 8);
-  const evenLayout = items.length > 0 && items.length <= 6;
-  const sidePad = 14 + Math.max(insets.left, insets.right, 0);
-
-  const renderItem = (item) => {
-    const active = activeScreen === item.screen;
-    const isDanger = item.danger;
-    const color = active ? '#fff' : isDanger ? COLORS.danger : COLORS.navInactive;
-
-    return (
-      <TouchableOpacity
-        key={item.screen}
-        style={[
-          styles.item,
-          evenLayout && styles.itemEven,
-          active && (isDanger ? styles.itemActiveDanger : styles.itemActive),
-        ]}
-        onPress={() => onNavigate(item.screen)}
-        activeOpacity={0.7}
-      >
-        <View>
-          <Ionicons name={ICON_MAP[item.icon] || 'ellipse'} size={active ? 18 : 17} color={color} />
-          {item.badge ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{item.badge > 99 ? '99+' : String(item.badge)}</Text>
-            </View>
-          ) : null}
-        </View>
-        <Text style={[styles.label, { color }, active && styles.labelActive]} numberOfLines={1}>
-          {item.title}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+  const sidePad = 12 + Math.max(insets.left, insets.right, 0);
 
   return (
-    <View style={[styles.wrapper, { paddingBottom: bottomPad, width }]}>
-      {evenLayout ? (
-        <View style={[styles.evenRow, { paddingHorizontal: sidePad }]}>{items.map(renderItem)}</View>
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.scrollRow, { paddingHorizontal: sidePad, justifyContent: 'center', flexGrow: 1 }]}
-        >
-          {items.map(renderItem)}
-        </ScrollView>
-      )}
+    <View style={[styles.wrapper, { width, paddingBottom: bottomPad, paddingHorizontal: sidePad }]}>
+      <View style={styles.row}>
+        {items.map((item) => {
+          const active = activeScreen === item.screen;
+          const isDanger = item.danger;
+          const color = active ? '#fff' : isDanger ? COLORS.danger : COLORS.navInactive;
+
+          return (
+            <TouchableOpacity
+              key={item.screen}
+              style={[
+                styles.item,
+                active && (isDanger ? styles.itemActiveDanger : styles.itemActive),
+              ]}
+              onPress={() => onNavigate(item.screen)}
+              activeOpacity={0.7}
+            >
+              <View>
+                <Ionicons name={ICON_MAP[item.icon] || 'ellipse'} size={active ? 21 : 20} color={color} />
+                {item.badge ? (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{item.badge > 99 ? '99+' : String(item.badge)}</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={[styles.label, { color }, active && styles.labelActive]} numberOfLines={1}>
+                {item.title}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -96,26 +84,20 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 8,
   },
-  evenRow: {
+  row: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',
-    paddingTop: 6,
-  },
-  scrollRow: {
-    paddingTop: 6,
-    alignItems: 'center',
+    paddingTop: 8,
   },
   item: {
-    alignItems: 'center',
-    paddingHorizontal: 2,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  itemEven: {
     flex: 1,
     minWidth: 0,
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+    borderRadius: 10,
   },
   itemActive: {
     backgroundColor: COLORS.primary,
@@ -124,7 +106,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.danger,
   },
   label: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '600',
     marginTop: 3,
     textAlign: 'center',
