@@ -23,9 +23,7 @@ export default function PageScaffold({
   headerExtra,
 }) {
   const insets = useSafeAreaInsets();
-  // BottomNav sayfaların üstüne bindiği için (özellikle Android) ScrollView alt boşluğunu büyütüyoruz,
-  // böylece boş alandan “yakala-çek” ile geri kaydırma çalışıyor.
-  const bottomPad = Math.max(32, (insets.bottom || 0) + 96);
+  const bottomPad = 20 + Math.min(insets.bottom || 0, 12);
 
   return (
     <KeyboardAvoidingView
@@ -69,7 +67,7 @@ export default function PageScaffold({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: COLORS.background },
-  content: { padding: 16, paddingBottom: 32, flexGrow: 1 },
+  content: { padding: 16 },
   title: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
   subtitle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4, marginBottom: 12 },
   errorBox: {
