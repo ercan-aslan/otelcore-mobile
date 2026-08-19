@@ -523,9 +523,10 @@ export const CalendarSummaryAPI = {
 };
 
 export const ReservationsAPI = {
-  list: (tab = 'confirmed', limit = 50, { websiteOnly = true } = {}) => {
+  list: (tab = 'confirmed', limit = 50, { websiteOnly = true, q = '' } = {}) => {
     const websiteQuery = websiteOnly ? '&website_only=1' : '';
-    return apiRequest(`/reservations?tab=${tab}&limit=${limit}${websiteQuery}`);
+    const qQuery = q ? `&q=${encodeURIComponent(q)}` : '';
+    return apiRequest(`/reservations?tab=${tab}&limit=${limit}${websiteQuery}${qQuery}`);
   },
   metaByIds: (ids = []) => {
     const clean = [...new Set(ids.map((id) => Number(id)).filter(Boolean))];
@@ -768,8 +769,8 @@ export const InventoryAPI = {
 };
 
 export const CancellationsAPI = {
-  list: (tab = 'cancelled', { websiteOnly = true } = {}) =>
-    ReservationsAPI.list(tab, 100, { websiteOnly }),
+  list: (tab = 'cancelled', { websiteOnly = true, q = '' } = {}) =>
+    ReservationsAPI.list(tab, q ? 400 : 100, { websiteOnly, q }),
   restore: (reservationId) =>
     apiRequest('/reservation_actions', {
       method: 'POST',

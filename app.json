@@ -2,7 +2,7 @@
   "expo": {
     "name": "OtelCore",
     "slug": "otelcore-mobile",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.otelcore.app",
-      "buildNumber": "26",
+      "buildNumber": "27",
       "usesAppleSignIn": true,
       "entitlements": {
         "com.apple.developer.applesignin": [
@@ -31,7 +31,7 @@
     },
     "android": {
       "package": "com.otelcore.app",
-      "versionCode": 26,
+      "versionCode": 27,
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",

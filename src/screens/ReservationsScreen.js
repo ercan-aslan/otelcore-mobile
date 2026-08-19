@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import PageScaffold from '../components/PageScaffold';
 import MobileCard from '../components/MobileCard';
 import TabPills from '../components/TabPills';
@@ -30,6 +30,24 @@ const DEFAULT_SORT = {
 function filterVisibleRows(rows, showChannelReservations) {
   if (showChannelReservations) return rows;
   return rows.filter((item) => !isIcalListReservation(item));
+}
+
+function matchesGuestQuery(item, q) {
+  const needle = String(q || '').trim().toLocaleLowerCase('tr-TR');
+  if (!needle) return true;
+  const hay = [
+    item.guest_name,
+    item.user_name,
+    item.user_surname,
+    item.channel_name,
+    item.display_name,
+    item.reservation_id,
+    item.id,
+  ]
+    .filter((v) => v != null && String(v).trim() !== '')
+    .join(' ')
+    .toLocaleLowerCase('tr-TR');
+  return hay.includes(needle);
 }
 
 function ReservationUnitAssign({ item, onAssigned }) {
@@ -88,6 +106,8 @@ export default function ReservationsScreen({ initialTab = 'confirmed' }) {
   const [error, setError] = useState('');
   const [restoringId, setRestoringId] = useState(null);
   const [sortKey, setSortKey] = useState(DEFAULT_SORT[initialTab] || 'created_at_desc');
+  const [nameQuery, setNameQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   const tabs = useMemo(
     () => [
@@ -109,14 +129,21 @@ export default function ReservationsScreen({ initialTab = 'confirmed' }) {
     setSortKey(DEFAULT_SORT[tab] || 'created_at_desc');
   }, [tab]);
 
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(nameQuery.trim()), 280);
+    return () => clearTimeout(t);
+  }, [nameQuery]);
+
   const load = useCallback(
     async (activeTab, isRefresh = false) => {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError('');
       try {
+        const q = debouncedQuery;
+        const limit = q ? 400 : 100;
         if (activeTab === 'confirmed') {
-          const res = await ReservationsAPI.list('confirmed', 100, { websiteOnly });
+          const res = await ReservationsAPI.list('confirmed', limit, { websiteOnly, q });
           const rows = res.data || res.reservations || [];
           setItems(rows);
           if (res.counts) {
@@ -127,7 +154,7 @@ export default function ReservationsScreen({ initialTab = 'confirmed' }) {
             }));
           }
         } else {
-          const res = await CancellationsAPI.list(activeTab, { websiteOnly });
+          const res = await CancellationsAPI.list(activeTab, { websiteOnly, q });
           const rows = res.data || [];
           setItems(rows);
           setCounts((prev) => ({ ...prev, [activeTab]: rows.length }));
@@ -140,7 +167,7 @@ export default function ReservationsScreen({ initialTab = 'confirmed' }) {
         setRefreshing(false);
       }
     },
-    [websiteOnly]
+    [websiteOnly, debouncedQuery]
   );
 
   useEffect(() => {
@@ -149,8 +176,14 @@ export default function ReservationsScreen({ initialTab = 'confirmed' }) {
   }, [tab, load, filterReady, tabs.length]);
 
   const visibleItems = useMemo(
-    () => sortReservationRows(filterVisibleRows(items, showChannelReservations), sortKey),
-    [items, showChannelReservations, sortKey]
+    () =>
+      sortReservationRows(
+        filterVisibleRows(items, showChannelReservations).filter((item) =>
+          matchesGuestQuery(item, nameQuery)
+        ),
+        sortKey
+      ),
+    [items, showChannelReservations, sortKey, nameQuery]
   );
 
   const onRestore = async (reservationId) => {
@@ -280,6 +313,16 @@ export default function ReservationsScreen({ initialTab = 'confirmed' }) {
       headerExtra={
         <>
           <TabPills tabs={tabs} activeKey={tab} onChange={setTab} />
+          <TextInput
+            style={styles.searchInput}
+            value={nameQuery}
+            onChangeText={setNameQuery}
+            placeholder="Misafir adı veya soyadı"
+            placeholderTextColor={COLORS.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            clearButtonMode="while-editing"
+          />
           <Text style={styles.sortLabel}>Sırala</Text>
           <TabPills tabs={RESERVATION_SORT_OPTIONS} activeKey={sortKey} onChange={setSortKey} />
         </>
@@ -288,7 +331,9 @@ export default function ReservationsScreen({ initialTab = 'confirmed' }) {
       {visibleItems.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>
-            {items.length > 0 && !showChannelReservations
+            {nameQuery.trim()
+              ? 'Bu isme uyan rezervasyon yok.'
+              : items.length > 0 && !showChannelReservations
               ? 'Web sitesi kaydı bulunamadı. Kanal kayıtları için üstteki anahtarı açın.'
               : 'Kayıt bulunamadı.'}
           </Text>
@@ -303,6 +348,18 @@ export default function ReservationsScreen({ initialTab = 'confirmed' }) {
 }
 
 const styles = StyleSheet.create({
+  searchInput: {
+    backgroundColor: COLORS.inputBg || '#f1f3f5',
+    borderWidth: 1,
+    borderColor: COLORS.border || '#dee2e6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: COLORS.textPrimary,
+    marginTop: 10,
+    marginBottom: 4,
+  },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   guest: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, flex: 1, paddingRight: 8 },
   price: { fontSize: 15, fontWeight: '700', color: COLORS.success },
