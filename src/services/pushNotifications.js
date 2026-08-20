@@ -227,13 +227,24 @@ export async function unregisterPushNotifications() {
   await AsyncStorage.removeItem(STORAGE_PUSH_TOKEN_KEY);
 }
 
-function extractReservationPayload(data) {
+function extractNotificationPayload(data) {
   if (!data || typeof data !== 'object') return null;
   const type = String(data.type || '');
+  const caseId = Number(data.case_id || 0);
+  if ((type === 'case_assigned' || type === 'case') && caseId > 0) {
+    return { type: 'case_assigned', case_id: caseId };
+  }
   const reservationId = Number(data.reservation_id || data.id || 0);
   if (type === 'new_reservation' && reservationId > 0) {
     return { type, reservation_id: reservationId };
   }
+  return null;
+}
+
+/** @deprecated use extractNotificationPayload */
+function extractReservationPayload(data) {
+  const payload = extractNotificationPayload(data);
+  if (payload?.type === 'new_reservation') return payload;
   return null;
 }
 
@@ -352,7 +363,7 @@ export async function consumeInitialNotificationAction() {
     return { type: 'none' };
   }
 
-  const payload = extractReservationPayload(response?.notification?.request?.content?.data);
+  const payload = extractNotificationPayload(response?.notification?.request?.content?.data);
   if (!payload) {
     return { type: 'none' };
   }
@@ -366,6 +377,10 @@ export async function consumeInitialNotificationAction() {
     await AsyncStorage.setItem(STORAGE_HANDLED_RESPONSE_KEY, fp);
   } catch {
     // ignore storage errors; yine de devam et
+  }
+
+  if (payload.type === 'case_assigned') {
+    return { type: 'open_case', caseId: payload.case_id };
   }
 
   return resolveNotificationOpenAction(payload.reservation_id);
@@ -505,7 +520,7 @@ export function listenForNotificationResponses(onAction) {
       return;
     }
 
-    const payload = extractReservationPayload(response.notification.request.content.data || {});
+    const payload = extractNotificationPayload(response.notification.request.content.data || {});
     if (!payload) return;
 
     try {
@@ -513,6 +528,11 @@ export function listenForNotificationResponses(onAction) {
       await AsyncStorage.setItem(STORAGE_HANDLED_RESPONSE_KEY, fp);
     } catch {
       // ignore
+    }
+
+    if (payload.type === 'case_assigned') {
+      onAction?.({ type: 'open_case', caseId: payload.case_id });
+      return;
     }
 
     notifyCalendarRefresh('push-tap');

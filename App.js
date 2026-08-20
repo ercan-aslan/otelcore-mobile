@@ -64,7 +64,7 @@ import {
   StaffScreen,
 } from './src/screens/ResourceScreens';
 import {
-  getInitialNotificationReservationId,
+  consumeInitialNotificationAction,
   initializeReservationTracking,
   listenForAppStateBadgeSync,
   listenForForegroundNotifications,
@@ -116,12 +116,17 @@ function DialogBinder() {
   return null;
 }
 
-function PushManager({ onOpenReservation }) {
+function PushManager({ onOpenReservation, onOpenCase }) {
   const onOpenRef = useRef(onOpenReservation);
+  const onOpenCaseRef = useRef(onOpenCase);
 
   useEffect(() => {
     onOpenRef.current = onOpenReservation;
   }, [onOpenReservation]);
+
+  useEffect(() => {
+    onOpenCaseRef.current = onOpenCase;
+  }, [onOpenCase]);
 
   useEffect(() => {
     let stopPolling = () => {};
@@ -132,9 +137,16 @@ function PushManager({ onOpenReservation }) {
         await initializeReservationTracking();
         await syncBadgeFromPresentedNotifications();
 
-        const pendingId = await getInitialNotificationReservationId();
-        if (pendingId) {
-          onOpenRef.current?.(pendingId);
+        const pendingAction = await consumeInitialNotificationAction();
+        if (pendingAction?.type === 'open_reservation' && pendingAction.reservationId) {
+          onOpenRef.current?.(pendingAction.reservationId);
+        } else if (pendingAction?.type === 'open_case' && pendingAction.caseId) {
+          onOpenCaseRef.current?.(pendingAction.caseId);
+        } else {
+          const pendingId = await getInitialNotificationReservationId();
+          if (pendingId) {
+            onOpenRef.current?.(pendingId);
+          }
         }
 
         stopPolling = startReservationPolling({ enableLocalAlerts: true });
@@ -146,6 +158,10 @@ function PushManager({ onOpenReservation }) {
     setup();
 
     const removeForeground = listenForForegroundNotifications((data) => {
+      if (data?.case_id || data?.type === 'case_assigned') {
+        // Foreground: banner yeterli; ekranı zorla açma.
+        return;
+      }
       if (data.reservation_id) {
         onOpenRef.current?.(Number(data.reservation_id));
       }
@@ -154,6 +170,9 @@ function PushManager({ onOpenReservation }) {
     const removeListener = listenForNotificationResponses((action) => {
       if (action?.type === 'open_reservation' && action.reservationId) {
         onOpenRef.current?.(action.reservationId);
+      }
+      if (action?.type === 'open_case' && action.caseId) {
+        onOpenCaseRef.current?.(action.caseId);
       }
     });
     const removeBadgeSync = listenForAppStateBadgeSync();
@@ -273,7 +292,10 @@ function MainShell({ admin, onLogout, branding }) {
     return (
       <NavigationContext.Provider value={navigation}>
         <SafeScreen style={styles.safe}>
-          <PushManager onOpenReservation={navigation.openReservation} />
+          <PushManager
+            onOpenReservation={navigation.openReservation}
+            onOpenCase={navigation.openCase}
+          />
           <AppHeader admin={admin} onLogout={onLogout} branding={branding} />
           <CalendarScreen />
         </SafeScreen>
@@ -284,7 +306,10 @@ function MainShell({ admin, onLogout, branding }) {
   return (
     <NavigationContext.Provider value={navigation}>
       <SafeScreen style={styles.safe}>
-        <PushManager onOpenReservation={navigation.openReservation} />
+        <PushManager
+          onOpenReservation={navigation.openReservation}
+          onOpenCase={navigation.openCase}
+        />
         <AppHeader admin={admin} onLogout={onLogout} branding={branding} />
         {showReservationFilter ? <ChannelFilterBar /> : null}
         <View style={styles.body}>
