@@ -8,6 +8,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import AppPressable from '../components/AppPressable';
 import { PaymentsAPI } from '../api';
 import { useFetch } from '../hooks/useFetch';
 import { COLORS } from '../theme';
@@ -42,15 +44,11 @@ export default function PaymentDetailScreen({ reservationId, initialSnapshot = n
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>Ödeme Detayı</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            #{reservationId} · {guest}
-          </Text>
-        </View>
-        <Pressable style={styles.closeBtn} onPress={onClose} accessibilityRole="button">
-          <Text style={styles.closeText}>Kapat</Text>
-        </Pressable>
+        <AppPressable onPress={onClose} style={styles.backBtn} accessibilityLabel="Geri">
+          <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
+        </AppPressable>
+        <View style={styles.headerSpacer} />
+        <Text style={styles.headerTitle}>Ödeme Detayı</Text>
       </View>
 
       {loading && !detail ? (
@@ -186,26 +184,29 @@ export default function PaymentDetailScreen({ reservationId, initialSnapshot = n
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: COLORS.bg || '#f4f6f9' },
+  wrap: { flex: 1, backgroundColor: COLORS.background || '#f4f6f9' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerText: { flex: 1, minWidth: 0, paddingRight: 8 },
-  title: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
-  subtitle: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
-  closeBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  backBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  closeText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  headerSpacer: { flex: 1 },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    paddingRight: 8,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   error: { color: COLORS.danger, textAlign: 'center', marginBottom: 12 },
   retryBtn: {

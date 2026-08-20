@@ -31,7 +31,7 @@ export const COLORS = {
 export const BRAND_NAME = 'OtelCore';
 export { API_BASE_URL } from './config';
 
-/** iOS Safari input odaklanınca sayfayı zoomlamaması için minimum 16px */
+/** iOS Safari input odaklanınca sayfayı zoomlamaması için minimum 16px (StyleSheet bump +1 uygular) */
 export const INPUT_FONT_SIZE = 16;
 export const INPUT_MIN_HEIGHT = 48;
 
