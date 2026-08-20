@@ -19,6 +19,7 @@ const ICON_MAP = {
   'bar-chart': 'bar-chart',
   images: 'images',
   ticket: 'ticket',
+  sparkles: 'sparkles-outline',
   clipboard: 'clipboard-outline',
   compass: 'compass',
   'git-network': 'git-network',

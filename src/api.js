@@ -137,6 +137,7 @@ async function apiRequest(path, options = {}) {
     error.status = response.status;
     if (data?.needs_confirm) error.needs_confirm = data.needs_confirm;
     if (data?.current_code) error.current_code = data.current_code;
+    if (data?.code) error.code = data.code;
     throw error;
   }
 
@@ -145,6 +146,7 @@ async function apiRequest(path, options = {}) {
     error.status = response.status;
     if (data?.needs_confirm) error.needs_confirm = data.needs_confirm;
     if (data?.current_code) error.current_code = data.current_code;
+    if (data?.code) error.code = data.code;
     throw error;
   }
 
@@ -791,6 +793,19 @@ export const RoomsAPI = {
     }),
 };
 
+export const HousekeepingAPI = {
+  list: () => apiRequest('/housekeeping'),
+  updateUnit: (unitId, status) =>
+    apiRequest('/housekeeping_actions', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'update_unit',
+        unit_id: unitId,
+        housekeeping_status: status,
+      }),
+    }),
+};
+
 export const PaymentsAPI = {
   list: (limit = 100, tab = 'collected', { websiteOnly = true } = {}) => {
     const websiteQuery = websiteOnly ? '&website_only=1' : '';
@@ -881,6 +896,8 @@ export const CasesAPI = {
     }),
   reopen: (caseId) =>
     apiRequest('/cases_actions', { method: 'POST', body: JSON.stringify({ action: 'reopen', case_id: caseId }) }),
+  delete: (caseId) =>
+    apiRequest('/cases_actions', { method: 'POST', body: JSON.stringify({ action: 'delete', case_id: caseId }) }),
 };
 
 export const ResourceAPI = {

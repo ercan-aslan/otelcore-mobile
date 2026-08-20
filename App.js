@@ -32,7 +32,7 @@ import {
   saveSiteBranding,
 } from './src/api';
 import { storageGetItem } from './src/utils/secureStorage';
-import { getAllowedMenuItems, getDefaultScreen, canAccess, canAccessMenuItem, MOBILE_MENU_ITEMS } from './src/menuConfig';
+import { getAllowedMenuItems, getDefaultScreen, canAccess, canAccessMenuItem, MOBILE_MENU_ITEMS, isHousekeepingOnly } from './src/menuConfig';
 import { applyWebAppFix } from './src/utils/applyWebAppFix';
 import { showMessage } from './src/utils/alert';
 import { COLORS } from './src/theme';
@@ -41,6 +41,7 @@ import CalendarScreen from './src/screens/CalendarScreen';
 import ReservationsScreen from './src/screens/ReservationsScreen';
 import ReservationDetailScreen from './src/screens/ReservationDetailScreen';
 import RoomsScreen from './src/screens/RoomsScreen';
+import HousekeepingScreen from './src/screens/HousekeepingScreen';
 import PaymentsScreen from './src/screens/PaymentsScreen';
 import PaymentDetailScreen from './src/screens/PaymentDetailScreen';
 import MarketScreen from './src/screens/MarketScreen';
@@ -86,6 +87,7 @@ const SCREEN_MAP = {
   reservations: ReservationsScreen,
   pricing: MarketScreen,
   rooms: RoomsScreen,
+  housekeeping: HousekeepingScreen,
   features: RoomFeaturesScreen,
   roomTypes: RoomTypesScreen,
   guests: GuestsScreen,
@@ -141,6 +143,7 @@ function PushManager({ onOpenReservation, onOpenCase }) {
         if (last?.token && !last?.error) {
           return last;
         }
+        // Token alındı ama sunucu kaydı başarısızsa kısa bekleyip tekrar dene
         if (last?.token && String(last.error || '').startsWith('server_register')) {
           await new Promise((r) => setTimeout(r, 800 * attempt));
           continue;
@@ -161,11 +164,6 @@ function PushManager({ onOpenReservation, onOpenCase }) {
           onOpenRef.current?.(pendingAction.reservationId);
         } else if (pendingAction?.type === 'open_case' && pendingAction.caseId) {
           onOpenCaseRef.current?.(pendingAction.caseId);
-        } else {
-          const pendingId = await getInitialNotificationReservationId();
-          if (pendingId) {
-            onOpenRef.current?.(pendingId);
-          }
         }
 
         stopPolling = startReservationPolling({ enableLocalAlerts: true });
@@ -311,6 +309,7 @@ function MainShell({ admin, onLogout, branding }) {
   const ScreenComponent = SCREEN_MAP[activeScreen] || CalendarScreen;
   const isCalendar = activeScreen === 'calendar';
   const overlayOpen = Boolean(reservationDetail || paymentDetail || caseDetail);
+  const hkOnly = isHousekeepingOnly(admin);
   const showReservationFilter =
     !overlayOpen &&
     (activeScreen === 'reservations' || activeScreen === 'cancellations' || activeScreen === 'payments');
@@ -373,7 +372,7 @@ function MainShell({ admin, onLogout, branding }) {
             </View>
           ) : null}
         </View>
-        {keyboardOpen ? null : (
+        {keyboardOpen || hkOnly ? null : (
         <BottomNav
           items={navItems}
           activeScreen={activeScreen}

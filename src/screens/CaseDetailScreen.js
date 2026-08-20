@@ -23,7 +23,7 @@ import { useFetch } from '../hooks/useFetch';
 import { useAppNavigation } from '../context/NavigationContext';
 import { COLORS } from '../theme';
 import { formatDate, formatDateTime } from '../utils/format';
-import { showMessage } from '../utils/alert';
+import { showMessage, showConfirm } from '../utils/alert';
 import { CASE_CATS, CASE_PRI, CASE_STATUS, priColor } from './CasesScreen';
 
 const DIM = 'rgba(0,0,0,0.58)';
@@ -195,13 +195,34 @@ export default function CaseDetailScreen({ caseId, onClose }) {
       <Header onClose={onClose} title={`#${item.case_id}`} loading={Boolean(busy) && !uploading} />
       <View style={styles.actionBar}>
         {closed ? (
-          <AppPressable
-            title="Yeniden aç"
-            color={COLORS.primary}
-            disabled={busy === 'reopen'}
-            onPress={() => run('reopen', () => CasesAPI.reopen(caseId), 'İş yeniden açıldı.')}
-            style={styles.actionBtn}
-          />
+          <>
+            <AppPressable
+              title="Yeniden aç"
+              color={COLORS.primary}
+              disabled={busy === 'reopen'}
+              onPress={() => run('reopen', () => CasesAPI.reopen(caseId), 'İş yeniden açıldı.')}
+              style={styles.actionBtn}
+            />
+            <AppPressable
+              title="Sil"
+              color={COLORS.danger}
+              disabled={busy === 'delete'}
+              onPress={() =>
+                showConfirm('İşi sil', 'Bu sonuçlanan iş kalıcı olarak silinsin mi?', async () => {
+                  setBusy('delete');
+                  try {
+                    await CasesAPI.delete(caseId);
+                    showMessage('Tamam', 'İş silindi.');
+                    onClose?.();
+                  } catch (err) {
+                    showMessage('Hata', err.message || 'Silinemedi.');
+                    setBusy('');
+                  }
+                }, { confirmText: 'Sil', destructive: true })
+              }
+              style={styles.actionBtn}
+            />
+          </>
         ) : (
           <>
             <AppPressable

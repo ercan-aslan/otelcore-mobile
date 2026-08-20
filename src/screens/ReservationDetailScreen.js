@@ -24,7 +24,7 @@ import {
   nightsBetweenIso,
   resolveReservationCurrency,
 } from '../utils/format';
-import { showMessage, showPrompt } from '../utils/alert';
+import { showMessage, showPrompt, showConfirm } from '../utils/alert';
 
 function money(res, amount) {
   return formatMoney(amount, resolveReservationCurrency(res));
@@ -370,6 +370,26 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
       refresh();
       return true;
     } catch (err) {
+      if (
+        action === 'check_in' &&
+        !extra.confirm_dirty_checkin &&
+        (err.code === 'dirty_room' || err.needs_confirm)
+      ) {
+        setBusy('');
+        showConfirm(
+          'Kirli oda',
+          'Oda kirli görünüyor. Temiz olarak işaretleyip check-in yapılsın mı?',
+          () => {
+            runAction(
+              'check_in',
+              { ...extra, confirm_dirty_checkin: 1 },
+              'Check-in yapıldı (oda temiz işaretlendi).'
+            );
+          },
+          { confirmText: 'Temizle ve check-in', cancelText: 'Vazgeç' }
+        );
+        return false;
+      }
       showMessage('Hata', err.message || 'İşlem başarısız.');
       return false;
     } finally {
