@@ -289,9 +289,6 @@ export default function CalendarGrid({
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.hint}>
-        Yalnızca müsait (açık) günlere basarak rezervasyon ekleyin. Oda adının yanındaki ok durum, fiyat ve min/max gösterir.
-      </Text>
       <View style={styles.table}>
         <View style={styles.fixedCol}>
           <View style={[styles.roomCol, styles.roomColHead]}>
@@ -392,17 +389,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     overflow: 'hidden',
     elevation: 2,
-  },
-  hint: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 6,
-    lineHeight: 15,
-    backgroundColor: '#f8fafc',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
   table: { flexDirection: 'row' },
   fixedCol: {

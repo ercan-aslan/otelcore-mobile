@@ -14,7 +14,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import PageScaffold from '../components/PageScaffold';
 import CalendarGrid, { calendarRowKey } from '../components/CalendarGrid';
-import CalendarLegend from '../components/CalendarLegend';
 import { FormInput, FormLabel } from '../components/FormCard';
 import DateInput from '../components/DateInput';
 import SelectField, { SubmitButton } from '../components/SelectField';
@@ -405,8 +404,6 @@ export default function CalendarScreen({ isFocused = true }) {
           <Ionicons name="chevron-forward" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
-
-      <CalendarLegend />
 
       <CalendarGrid
         days={cal?.days || []}
