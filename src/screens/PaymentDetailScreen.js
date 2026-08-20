@@ -23,6 +23,7 @@ export default function PaymentDetailScreen({ reservationId, initialSnapshot = n
   const { data, loading, error, refresh, refreshing } = useFetch(loader);
   const detail = data?.data || null;
   const snap = initialSnapshot || {};
+  const hasSnap = !!(snap.reservation_id || snap.user_name || snap.guest_name || snap.amount);
 
   const guest =
     detail?.guest_name || snap.user_name || snap.guest_name || 'Misafir';
@@ -40,6 +41,7 @@ export default function PaymentDetailScreen({ reservationId, initialSnapshot = n
   const commission = detail?.commission || {};
   const lineItems = detail?.line_items || [];
   const payments = detail?.payments || [];
+  const showBody = !!detail || (!!error && hasSnap) || (!loading && hasSnap);
 
   return (
     <View style={styles.wrap}>
@@ -51,24 +53,32 @@ export default function PaymentDetailScreen({ reservationId, initialSnapshot = n
         <Text style={styles.headerTitle}>Ödeme Detayı</Text>
       </View>
 
-      {loading && !detail ? (
+      {loading && !detail && !hasSnap ? (
         <View style={styles.center}>
           <ActivityIndicator color={COLORS.primary} />
         </View>
-      ) : error && !detail ? (
+      ) : error && !detail && !hasSnap ? (
         <View style={styles.center}>
           <Text style={styles.error}>{error}</Text>
           <Pressable style={styles.retryBtn} onPress={refresh}>
             <Text style={styles.retryText}>Yenile</Text>
           </Pressable>
         </View>
-      ) : (
+      ) : showBody ? (
         <ScrollView
           contentContainerStyle={styles.content}
           refreshControl={
             <RefreshControl refreshing={!!refreshing} onRefresh={refresh} tintColor={COLORS.primary} />
           }
         >
+          {error && !detail ? (
+            <View style={styles.warnBox}>
+              <Text style={styles.warnText}>{error}</Text>
+              <Pressable onPress={refresh}>
+                <Text style={styles.linkRetry}>Yenile</Text>
+              </Pressable>
+            </View>
+          ) : null}
           <View style={styles.card}>
             <View style={styles.rowBetween}>
               <Text style={styles.guest}>{guest}</Text>
@@ -94,7 +104,16 @@ export default function PaymentDetailScreen({ reservationId, initialSnapshot = n
               ) : null}
             </View>
             {lineItems.length === 0 ? (
-              <Text style={styles.emptyLine}>Kalem yok</Text>
+              Number(snap.amount) > 0 ? (
+                <View style={styles.lineRow}>
+                  <Text style={styles.lineLabel}>Konaklama</Text>
+                  <Text style={styles.lineAmount}>
+                    {snap.amount_formatted || formatMoney(snap.amount, currency)}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.emptyLine}>Kalem yok</Text>
+              )
             ) : (
               lineItems.map((item) => (
                 <View key={item.key || item.label} style={styles.lineRow}>
@@ -209,6 +228,16 @@ const styles = StyleSheet.create({
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   error: { color: COLORS.danger, textAlign: 'center', marginBottom: 12 },
+  warnBox: {
+    backgroundColor: '#fff7ed',
+    borderColor: '#fdba74',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    gap: 6,
+  },
+  warnText: { color: '#9a3412', fontSize: 12, lineHeight: 18 },
   retryBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: 8,
@@ -216,6 +245,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   retryText: { color: '#fff', fontWeight: '700' },
+  linkRetry: { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
   content: { padding: 12, paddingBottom: 28 },
   card: {
     backgroundColor: COLORS.surface,
