@@ -65,10 +65,12 @@ import {
 import {
   getInitialNotificationReservationId,
   initializeReservationTracking,
+  listenForAppStateBadgeSync,
   listenForForegroundNotifications,
   listenForNotificationResponses,
   registerForPushNotifications,
   startReservationPolling,
+  syncBadgeFromPresentedNotifications,
   unregisterPushNotifications,
 } from './src/services/pushNotifications';
 import {
@@ -127,6 +129,7 @@ function PushManager({ onOpenReservation }) {
       try {
         await registerForPushNotifications();
         await initializeReservationTracking();
+        await syncBadgeFromPresentedNotifications();
 
         const pendingId = await getInitialNotificationReservationId();
         if (pendingId) {
@@ -147,14 +150,18 @@ function PushManager({ onOpenReservation }) {
       }
     });
 
-    const removeListener = listenForNotificationResponses((reservationId) => {
-      onOpenRef.current?.(reservationId);
+    const removeListener = listenForNotificationResponses((action) => {
+      if (action?.type === 'open_reservation' && action.reservationId) {
+        onOpenRef.current?.(action.reservationId);
+      }
     });
+    const removeBadgeSync = listenForAppStateBadgeSync();
 
     return () => {
       stopPolling();
       removeForeground();
       removeListener();
+      removeBadgeSync();
     };
   }, []);
 

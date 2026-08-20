@@ -210,86 +210,121 @@ export default function ReservationsScreen({ initialTab = 'confirmed' }) {
     const roomLine = item.unit_code
       ? `${item.room_name || 'Oda'} · ${item.unit_code}`
       : item.room_name || 'Oda';
+    const created =
+      item.created_at_formatted || (item.created_at ? formatDateTime(item.created_at) : '');
     return (
-      <MobileCard key={String(reservationId)} borderColor={COLORS.primary}>
-        <Pressable onPress={openDetail}>
-          <View style={styles.row}>
-            <Text style={styles.guest} numberOfLines={1}>
-              {guest}
+      <MobileCard
+        key={String(reservationId)}
+        borderColor={COLORS.primary}
+        style={styles.compactCard}
+      >
+        <View style={styles.topRow}>
+          <Pressable style={styles.topMain} onPress={openDetail}>
+            <View style={styles.nameRow}>
+              <Text style={styles.guest} numberOfLines={1}>
+                {guest}
+              </Text>
+              <View style={[styles.channelBadge, { backgroundColor: channel.color }]}>
+                <Text style={styles.channelText} numberOfLines={1}>
+                  {channel.label}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.meta} numberOfLines={1}>
+              {roomLine} · {formatDateShort(item.check_in)} – {formatDateShort(item.check_out)}
             </Text>
+            <Text style={styles.footMeta} numberOfLines={1}>
+              #{reservationId}
+              {created ? ` · ${created}` : ''}
+            </Text>
+          </Pressable>
+          <View style={styles.topActions}>
             <Text style={styles.price}>{formatReservationMoney(item)}</Text>
+            <Pressable
+              style={styles.detailBtn}
+              onPress={openDetail}
+              accessibilityRole="button"
+              accessibilityLabel="Detay Aç"
+            >
+              <Text style={styles.detailBtnText}>Detay</Text>
+            </Pressable>
           </View>
-          <Text style={styles.meta}>
-            🚪 {roomLine} | {formatDateShort(item.check_in)} -{' '}
-            {formatDateShort(item.check_out)}
-          </Text>
-          {item.created_at_formatted || item.created_at ? (
-            <Text style={styles.meta}>
-              Kayıt: {item.created_at_formatted || formatDateTime(item.created_at)}
-            </Text>
-          ) : null}
-          <View style={[styles.channelBadge, { backgroundColor: channel.color }]}>
-            <Text style={styles.channelText}>{channel.label}</Text>
-          </View>
-          <Text style={styles.idText}>#{reservationId}</Text>
-        </Pressable>
+        </View>
         <ReservationUnitAssign item={item} onAssigned={() => load(tab, true)} />
-        <SubmitButton title="Detay Aç" onPress={openDetail} />
       </MobileCard>
     );
   };
 
   const renderCancellationItem = (item) => {
     const borderColor = tab === 'refunds' ? COLORS.success : COLORS.warning;
+    const openDetail = () => openReservation(item.reservation_id, item);
+    const created =
+      item.created_at_formatted || (item.created_at ? formatDateTime(item.created_at) : '');
     return (
-      <MobileCard key={String(item.reservation_id)} borderColor={borderColor}>
-        <Pressable onPress={() => openReservation(item.reservation_id, item)}>
-          <Text style={styles.guest}>{item.guest_name || 'Misafir'}</Text>
-          <Text style={styles.meta}>
-            #{item.reservation_id} · {item.room_name}
-          </Text>
-          <Text style={styles.meta}>
-            {formatDateShort(item.check_in)} → {formatDateShort(item.check_out)}
-          </Text>
-          {item.created_at_formatted || item.created_at ? (
-            <Text style={styles.meta}>
-              Kayıt: {item.created_at_formatted || formatDateTime(item.created_at)}
-            </Text>
-          ) : null}
-          {item.total_price_formatted ? (
-            <Text style={styles.total}>{item.total_price_formatted}</Text>
-          ) : null}
-          {item.refund_amount > 0 ? (
-            <Text style={styles.refund}>
-              İade: {formatMoney(item.refund_amount, resolveReservationCurrency(item))}
-            </Text>
-          ) : null}
-          {item.cancelled_at_formatted ? (
-            <Text style={styles.meta}>İptal: {item.cancelled_at_formatted}</Text>
-          ) : null}
-          {item.cancel_reason ? (
-            <Text style={styles.reason} numberOfLines={3}>
-              {item.cancel_reason}
-            </Text>
-          ) : null}
-          {item.sync_locked ? (
-            <View style={styles.lockBadge}>
-              <Text style={styles.lockText}>Senkron Kilitli</Text>
+      <MobileCard
+        key={String(item.reservation_id)}
+        borderColor={borderColor}
+        style={styles.compactCard}
+      >
+        <View style={styles.topRow}>
+          <Pressable style={styles.topMain} onPress={openDetail}>
+            <View style={styles.nameRow}>
+              <Text style={styles.guest} numberOfLines={1}>
+                {item.guest_name || 'Misafir'}
+              </Text>
+              {item.sync_locked ? (
+                <View style={styles.lockBadge}>
+                  <Text style={styles.lockText}>Kilit</Text>
+                </View>
+              ) : null}
             </View>
-          ) : null}
-        </Pressable>
-        <SubmitButton
-          title="Detay Aç"
-          onPress={() => openReservation(item.reservation_id, item)}
-        />
-        {String(item.status || '').toLowerCase() === 'cancelled' ? (
-          <SubmitButton
-            title="İptali Geri Al"
-            color={COLORS.success}
-            loading={restoringId === item.reservation_id}
-            onPress={() => onRestore(item.reservation_id)}
-          />
-        ) : null}
+            <Text style={styles.meta} numberOfLines={1}>
+              {item.room_name || 'Oda'} · {formatDateShort(item.check_in)} –{' '}
+              {formatDateShort(item.check_out)}
+            </Text>
+            <Text style={styles.footMeta} numberOfLines={1}>
+              #{item.reservation_id}
+              {created ? ` · ${created}` : ''}
+              {item.cancelled_at_formatted ? ` · İptal ${item.cancelled_at_formatted}` : ''}
+            </Text>
+            {item.refund_amount > 0 ? (
+              <Text style={styles.refund}>
+                İade: {formatMoney(item.refund_amount, resolveReservationCurrency(item))}
+              </Text>
+            ) : null}
+            {item.cancel_reason ? (
+              <Text style={styles.reason} numberOfLines={1}>
+                {item.cancel_reason}
+              </Text>
+            ) : null}
+          </Pressable>
+          <View style={styles.topActions}>
+            {item.total_price_formatted ? (
+              <Text style={styles.price}>{item.total_price_formatted}</Text>
+            ) : null}
+            <Pressable
+              style={styles.detailBtn}
+              onPress={openDetail}
+              accessibilityRole="button"
+              accessibilityLabel="Detay Aç"
+            >
+              <Text style={styles.detailBtnText}>Detay</Text>
+            </Pressable>
+            {String(item.status || '').toLowerCase() === 'cancelled' ? (
+              <Pressable
+                style={[styles.detailBtn, styles.restoreBtn]}
+                onPress={() => onRestore(item.reservation_id)}
+                disabled={restoringId === item.reservation_id}
+                accessibilityRole="button"
+                accessibilityLabel="İptali Geri Al"
+              >
+                <Text style={styles.detailBtnText}>
+                  {restoringId === item.reservation_id ? '...' : 'Geri Al'}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
       </MobileCard>
     );
   };
@@ -360,31 +395,53 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 4,
   },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  guest: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, flex: 1, paddingRight: 8 },
-  price: { fontSize: 15, fontWeight: '700', color: COLORS.success },
-  total: { fontSize: 14, fontWeight: '700', color: COLORS.primary, marginTop: 6 },
-  refund: { fontSize: 14, fontWeight: '700', color: COLORS.success, marginTop: 6 },
-  meta: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4 },
-  reason: { fontSize: 12, color: COLORS.textMuted, marginTop: 8, fontStyle: 'italic' },
+  compactCard: { paddingVertical: 10, paddingHorizontal: 12, marginBottom: 8 },
+  topRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  topMain: { flex: 1, minWidth: 0 },
+  topActions: { alignItems: 'flex-end', gap: 6, paddingTop: 1 },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  guest: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    flexShrink: 1,
+    maxWidth: '70%',
+  },
+  price: { fontSize: 13, fontWeight: '700', color: COLORS.success },
+  refund: { fontSize: 12, fontWeight: '700', color: COLORS.success, marginTop: 2 },
+  meta: { fontSize: 12, color: COLORS.textSecondary, marginTop: 1 },
+  footMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  reason: { fontSize: 11, color: COLORS.textMuted, marginTop: 2, fontStyle: 'italic' },
   channelBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginTop: 8,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    maxWidth: 110,
+    flexShrink: 0,
   },
-  channelText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  idText: { fontSize: 11, color: COLORS.textMuted, marginTop: 6 },
+  channelText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  detailBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minWidth: 58,
+    alignItems: 'center',
+  },
+  restoreBtn: { backgroundColor: COLORS.success },
+  detailBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   lockBadge: {
-    alignSelf: 'flex-start',
     backgroundColor: '#fff3cd',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginTop: 8,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  lockText: { fontSize: 11, fontWeight: '700', color: '#856404' },
+  lockText: { fontSize: 10, fontWeight: '700', color: '#856404' },
   empty: {
     backgroundColor: COLORS.surface,
     padding: 24,
@@ -401,5 +458,5 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     marginTop: 4,
   },
-  assignWrap: { marginTop: 10 },
+  assignWrap: { marginTop: 8 },
 });

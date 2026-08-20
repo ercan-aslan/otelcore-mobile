@@ -18,6 +18,17 @@ export const STORAGE_PUSH_TOKEN_KEY = '@otelcore_push_token';
 export const STORAGE_PUSH_LAST_ERROR_KEY = '@otelcore_push_last_error';
 const STORAGE_HANDLED_RESPONSE_KEY = '@otelcore_handled_notif_response';
 const STORAGE_LOCAL_NOTIFIED_KEY = '@otelcore_local_notified_ids';
+const RESERVATION_CATEGORY_ID = 'reservation';
+
+function isDismissNotificationResponse(response) {
+  const id = String(response?.actionIdentifier || '');
+  if (!id) return false;
+  const lower = id.toLowerCase();
+  return (
+    id === 'com.apple.UNNotificationDismissActionIdentifier' ||
+    lower.includes('dismiss')
+  );
+}
 
 /** Expo Go (SDK 53+) uzaktan push desteklemez — development build gerekir. */
 export function isExpoGoClient() {
@@ -114,6 +125,20 @@ export async function ensureAndroidChannel() {
   });
 }
 
+async function ensureReservationCategory() {
+  const Notifications = getNotificationsModule();
+  if (!Notifications?.setNotificationCategoryAsync) {
+    return;
+  }
+  try {
+    await Notifications.setNotificationCategoryAsync(RESERVATION_CATEGORY_ID, [], {
+      customDismissAction: true,
+    });
+  } catch {
+    // Kategori yoksa silme bildirimi gelmez; AppState senkronu yedek.
+  }
+}
+
 /**
  * Expo token alır ve sunucuya kaydeder.
  * @returns {{ token: string|null, error: string|null }}
@@ -138,6 +163,7 @@ export async function registerForPushNotifications() {
   try {
     ensureNotificationHandler();
     await ensureAndroidChannel();
+    await ensureReservationCategory();
 
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -321,6 +347,11 @@ export async function consumeInitialNotificationAction() {
     return { type: 'none' };
   }
 
+  if (isDismissNotificationResponse(response)) {
+    await syncBadgeFromPresentedNotifications();
+    return { type: 'none' };
+  }
+
   const payload = extractReservationPayload(response?.notification?.request?.content?.data);
   if (!payload) {
     return { type: 'none' };
@@ -394,6 +425,7 @@ async function showLocalReservationAlert(item) {
         reservation_id: item.reservation_id || item.id,
       },
       sound: 'default',
+      categoryIdentifier: RESERVATION_CATEGORY_ID,
     },
     trigger: null,
   });
@@ -468,6 +500,11 @@ export function listenForNotificationResponses(onAction) {
 
   ensureNotificationHandler();
   const subscription = Notifications.addNotificationResponseReceivedListener(async (response) => {
+    if (isDismissNotificationResponse(response)) {
+      await syncBadgeFromPresentedNotifications();
+      return;
+    }
+
     const payload = extractReservationPayload(response.notification.request.content.data || {});
     if (!payload) return;
 
