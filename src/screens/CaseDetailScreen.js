@@ -331,13 +331,14 @@ export default function CaseDetailScreen({ caseId, onClose }) {
                   setModal(null);
                 }, 'İş kapatıldı.')
               }
+              style={{ marginTop: 4 }}
             />
             <AppPressable
               title="Vazgeç"
               color={COLORS.textPrimary}
               variant="outline"
               onPress={() => setModal(null)}
-              style={{ marginTop: 8 }}
+              style={{ marginTop: 10 }}
             />
           </View>
         </KeyboardAvoidingView>

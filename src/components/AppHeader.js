@@ -5,10 +5,9 @@ import { COLORS } from '../theme';
 import { showConfirm } from '../utils/alert';
 
 export default function AppHeader({ admin, onLogout, branding }) {
-  const displayName =
-    String(admin?.admin_kadi || '').trim() ||
-    String(admin?.admin_adsoyad || '').trim() ||
-    'Admin';
+  const fullName = String(admin?.admin_adsoyad || '').trim();
+  const firstName = fullName ? fullName.split(/\s+/)[0] : '';
+  const displayName = firstName || String(admin?.admin_kadi || '').trim() || 'Admin';
   const logoUrl = String(branding?.logo_url || '').trim();
 
   const handleLogout = () => {

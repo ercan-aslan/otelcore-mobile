@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Keyboard,
   Platform,
   StatusBar,
@@ -130,10 +131,28 @@ function PushManager({ onOpenReservation, onOpenCase }) {
 
   useEffect(() => {
     let stopPolling = () => {};
+    let cancelled = false;
+
+    const registerWithRetry = async () => {
+      let last = null;
+      for (let attempt = 1; attempt <= 4; attempt += 1) {
+        if (cancelled) return null;
+        last = await registerForPushNotifications();
+        if (last?.token && !last?.error) {
+          return last;
+        }
+        if (last?.token && String(last.error || '').startsWith('server_register')) {
+          await new Promise((r) => setTimeout(r, 800 * attempt));
+          continue;
+        }
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
+      }
+      return last;
+    };
 
     const setup = async () => {
       try {
-        await registerForPushNotifications();
+        await registerWithRetry();
         await initializeReservationTracking();
         await syncBadgeFromPresentedNotifications();
 
@@ -157,6 +176,13 @@ function PushManager({ onOpenReservation, onOpenCase }) {
 
     setup();
 
+    const onAppState = (state) => {
+      if (state === 'active') {
+        registerForPushNotifications().catch(() => {});
+      }
+    };
+    const sub = AppState.addEventListener('change', onAppState);
+
     const removeForeground = listenForForegroundNotifications((data) => {
       if (data?.case_id || data?.type === 'case_assigned') {
         // Foreground: banner yeterli; ekranı zorla açma.
@@ -178,7 +204,9 @@ function PushManager({ onOpenReservation, onOpenCase }) {
     const removeBadgeSync = listenForAppStateBadgeSync();
 
     return () => {
+      cancelled = true;
       stopPolling();
+      sub?.remove?.();
       removeForeground();
       removeListener();
       removeBadgeSync();

@@ -122,14 +122,16 @@ export function ConfirmButton({
             setOpen(false);
             onConfirm?.();
           }}
-          style={styles.confirmYes}
+          style={styles.confirmHalf}
+          textStyle={styles.confirmHalfText}
         />
         <AppPressable
           title={cancelLabel}
           color={COLORS.textSecondary}
           variant="outline"
           onPress={() => setOpen(false)}
-          style={styles.confirmNo}
+          style={styles.confirmHalf}
+          textStyle={styles.confirmHalfText}
         />
       </View>
     );
@@ -192,11 +194,17 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85 },
   confirmRow: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: 8,
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    flex: 1,
+    width: '100%',
   },
-  confirmYes: { minHeight: 38, paddingHorizontal: 10 },
-  confirmNo: { minHeight: 38, paddingHorizontal: 10 },
+  confirmHalf: {
+    flex: 1,
+    minHeight: 44,
+    minWidth: 0,
+    paddingHorizontal: 8,
+  },
+  confirmHalfText: {
+    fontSize: 13,
+  },
 });
