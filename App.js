@@ -41,6 +41,7 @@ import ReservationsScreen from './src/screens/ReservationsScreen';
 import ReservationDetailScreen from './src/screens/ReservationDetailScreen';
 import RoomsScreen from './src/screens/RoomsScreen';
 import PaymentsScreen from './src/screens/PaymentsScreen';
+import PaymentDetailScreen from './src/screens/PaymentDetailScreen';
 import MarketScreen from './src/screens/MarketScreen';
 import CouponsScreen from './src/screens/CouponsScreen';
 import CasesScreen from './src/screens/CasesScreen';
@@ -178,6 +179,7 @@ function MainShell({ admin, onLogout, branding }) {
   const menuItems = useMemo(() => getAllowedMenuItems(admin), [admin]);
   const [activeScreen, setActiveScreen] = useState(() => getDefaultScreen(admin));
   const [reservationDetail, setReservationDetail] = useState(null);
+  const [paymentDetail, setPaymentDetail] = useState(null);
   const [caseDetail, setCaseDetail] = useState(null);
   const [caseBadge, setCaseBadge] = useState(0);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -198,12 +200,22 @@ function MainShell({ admin, onLogout, branding }) {
       openReservation: (id, snapshot = null) => {
         const numId = Number(id);
         if (!numId) return;
+        setPaymentDetail(null);
+        setCaseDetail(null);
         setReservationDetail({ id: numId, snapshot });
+      },
+      openPayment: (id, snapshot = null) => {
+        const numId = Number(id);
+        if (!numId) return;
+        setReservationDetail(null);
+        setCaseDetail(null);
+        setPaymentDetail({ id: numId, snapshot });
       },
       openCase: (id) => {
         const numId = Number(id);
         if (!numId) return;
         setReservationDetail(null);
+        setPaymentDetail(null);
         setCaseDetail({ id: numId });
       },
       navigateTo: (screen) => {
@@ -212,6 +224,7 @@ function MainShell({ admin, onLogout, branding }) {
           return;
         }
         setReservationDetail(null);
+        setPaymentDetail(null);
         setCaseDetail(null);
         setActiveScreen(screen);
       },
@@ -250,7 +263,7 @@ function MainShell({ admin, onLogout, branding }) {
 
   const ScreenComponent = SCREEN_MAP[activeScreen] || CalendarScreen;
   const isCalendar = activeScreen === 'calendar';
-  const overlayOpen = Boolean(reservationDetail || caseDetail);
+  const overlayOpen = Boolean(reservationDetail || paymentDetail || caseDetail);
   const showReservationFilter =
     !overlayOpen &&
     (activeScreen === 'reservations' || activeScreen === 'cancellations' || activeScreen === 'payments');
@@ -289,6 +302,14 @@ function MainShell({ admin, onLogout, branding }) {
                 onClose={() => setReservationDetail(null)}
               />
             </View>
+          ) : paymentDetail ? (
+            <View style={styles.flex1}>
+              <PaymentDetailScreen
+                reservationId={paymentDetail.id}
+                initialSnapshot={paymentDetail.snapshot}
+                onClose={() => setPaymentDetail(null)}
+              />
+            </View>
           ) : caseDetail ? (
             <View style={styles.flex1}>
               <CaseDetailScreen caseId={caseDetail.id} onClose={() => setCaseDetail(null)} />
@@ -305,6 +326,7 @@ function MainShell({ admin, onLogout, branding }) {
           activeScreen={activeScreen}
           onNavigate={(screen) => {
             setReservationDetail(null);
+            setPaymentDetail(null);
             setCaseDetail(null);
             setActiveScreen(screen);
           }}

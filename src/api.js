@@ -796,6 +796,8 @@ export const PaymentsAPI = {
     const websiteQuery = websiteOnly ? '&website_only=1' : '';
     return apiRequest(`/payments?limit=${limit}&tab=${encodeURIComponent(tab)}${websiteQuery}`);
   },
+  detail: (reservationId) =>
+    apiRequest(`/payment_detail?reservation_id=${encodeURIComponent(reservationId)}`),
 };
 
 export const ReportsAPI = {

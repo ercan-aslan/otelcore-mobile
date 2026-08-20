@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import PageScaffold from '../components/PageScaffold';
 import MobileCard from '../components/MobileCard';
 import TabPills from '../components/TabPills';
-import { SubmitButton } from '../components/SelectField';
 import { PaymentsAPI } from '../api';
 import { useAppNavigation } from '../context/NavigationContext';
 import { useReservationFilter } from '../context/ReservationFilterContext';
@@ -19,7 +18,7 @@ function statusColor(pay, tab) {
 }
 
 export default function PaymentsScreen() {
-  const { openReservation } = useAppNavigation();
+  const { openPayment } = useAppNavigation();
   const { websiteOnly, ready: filterReady } = useReservationFilter();
   const [tab, setTab] = useState('collected');
 
@@ -105,41 +104,64 @@ export default function PaymentsScreen() {
           const amountLabel =
             pay.amount_formatted
             || formatMoney(pay.amount, pay.currency || resolveReservationCurrency(pay));
+          const source =
+            pay.source_label
+            || pay.payment_method
+            || (pay.is_channel ? 'Kanal' : 'Web');
+          const stay = [
+            pay.check_in_formatted || formatDateShort(pay.check_in),
+            pay.check_out_formatted || formatDateShort(pay.check_out),
+          ]
+            .filter(Boolean)
+            .join(' – ');
 
           const openPay = () => {
             if (!pay.reservation_id) return;
-            openReservation(pay.reservation_id, {
-              reservation_id: pay.reservation_id,
-              guest_name: pay.user_name,
-            });
+            openPayment(pay.reservation_id, pay);
           };
+
           return (
-            <MobileCard key={key} borderColor={statusColor(pay, tab)}>
-              <Pressable onPress={openPay}>
-                <View style={styles.row}>
-                  <Text style={styles.customer} numberOfLines={1}>
-                    👤 {pay.user_name}
+            <MobileCard
+              key={key}
+              borderColor={statusColor(pay, tab)}
+              style={styles.compactCard}
+            >
+              <View style={styles.topRow}>
+                <Pressable style={styles.topMain} onPress={openPay}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.customer} numberOfLines={1}>
+                      {pay.user_name || 'Misafir'}
+                    </Text>
+                    <View style={[styles.badge, { backgroundColor: statusColor(pay, tab) }]}>
+                      <Text style={styles.badgeText} numberOfLines={1}>
+                        {pay.payment_kind_label || (tab === 'pending' ? 'Bekliyor' : 'Tahsil')}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.meta} numberOfLines={1}>
+                    #{pay.reservation_id} · {source}
+                    {stay ? ` · ${stay}` : ''}
                   </Text>
+                  <Text style={styles.date} numberOfLines={1}>
+                    {pay.created_at_formatted || pay.display_date || formatDateTime(pay.created_at) || '—'}
+                  </Text>
+                </Pressable>
+                <View style={styles.topActions}>
                   <Text style={[styles.amount, Number(pay.amount) < 0 && styles.amountNegative]}>
                     {amountLabel}
                   </Text>
+                  {pay.reservation_id ? (
+                    <Pressable
+                      style={styles.detailBtn}
+                      onPress={openPay}
+                      accessibilityRole="button"
+                      accessibilityLabel="Ödeme Detayı"
+                    >
+                      <Text style={styles.detailBtnText}>Ödeme Detayı</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
-                <Text style={styles.meta}>
-                  #{pay.reservation_id} · {pay.payment_method}
-                </Text>
-                <View style={[styles.badge, { backgroundColor: statusColor(pay, tab) }]}>
-                  <Text style={styles.badgeText}>{pay.payment_kind_label || (tab === 'pending' ? 'Bekliyor' : 'Tahsil')}</Text>
-                </View>
-                <Text style={styles.date}>
-                  Giriş: {pay.check_in_formatted || formatDateShort(pay.check_in) || '-'}
-                </Text>
-                <Text style={styles.date}>
-                  Ödeme: {pay.created_at_formatted || pay.display_date || formatDateTime(pay.created_at)}
-                </Text>
-              </Pressable>
-              {pay.reservation_id ? (
-                <SubmitButton title="Rezervasyon Detayı" onPress={openPay} />
-              ) : null}
+              </View>
             </MobileCard>
           );
         })
@@ -161,18 +183,42 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 4 },
   totalValue: { fontSize: 20, fontWeight: '800', color: COLORS.success },
   empty: { color: COLORS.textMuted, textAlign: 'center', padding: 24, lineHeight: 22 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  customer: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, flex: 1, paddingRight: 8 },
-  amount: { fontSize: 15, fontWeight: '700', color: COLORS.success },
-  amountNegative: { color: COLORS.danger },
-  meta: { fontSize: 13, color: COLORS.textSecondary },
-  badge: {
-    alignSelf: 'flex-start',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 8,
+  compactCard: { paddingVertical: 10, paddingHorizontal: 12, marginBottom: 8 },
+  topRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  topMain: { flex: 1, minWidth: 0 },
+  topActions: { alignItems: 'flex-end', gap: 6, paddingTop: 1 },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
   },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  date: { fontSize: 11, color: COLORS.textMuted, marginTop: 6 },
+  customer: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    flexShrink: 1,
+    maxWidth: '68%',
+  },
+  amount: { fontSize: 13, fontWeight: '700', color: COLORS.success },
+  amountNegative: { color: COLORS.danger },
+  meta: { fontSize: 12, color: COLORS.textSecondary, marginTop: 1 },
+  badge: {
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    maxWidth: 120,
+    flexShrink: 0,
+  },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  date: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  detailBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    minWidth: 72,
+    alignItems: 'center',
+  },
+  detailBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 });
