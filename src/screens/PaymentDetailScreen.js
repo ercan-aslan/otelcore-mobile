@@ -197,7 +197,7 @@ export default function PaymentDetailScreen({ reservationId, initialSnapshot = n
             </View>
           )}
         </ScrollView>
-      )}
+      ) : null}
     </View>
   );
 }

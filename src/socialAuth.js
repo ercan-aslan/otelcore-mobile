@@ -18,8 +18,18 @@ export async function startGoogleLogin() {
     return null;
   }
   try {
-    return new URL(result.url).searchParams.get('ticket');
-  } catch {
+    const parsed = new URL(result.url);
+    const err = parsed.searchParams.get('error');
+    if (err) {
+      const error = new Error(err);
+      error.code = 'GOOGLE_AUTH_ERROR';
+      throw error;
+    }
+    return parsed.searchParams.get('ticket');
+  } catch (e) {
+    if (e?.code === 'GOOGLE_AUTH_ERROR') {
+      throw e;
+    }
     return null;
   }
 }

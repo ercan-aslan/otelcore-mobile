@@ -227,11 +227,13 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 10,
-    justifyContent: 'flex-end',
+    justifyContent: 'stretch',
+    alignItems: 'stretch',
   },
   btn: {
+    flex: 1,
     minHeight: 44,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -240,7 +242,6 @@ const styles = StyleSheet.create({
   fullBtn: { flex: 1 },
   cancelBtn: {
     backgroundColor: '#e9ecef',
-    flex: 1,
   },
   cancelText: { color: COLORS.textPrimary, fontWeight: '700', fontSize: 14 },
 });
