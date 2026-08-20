@@ -467,15 +467,10 @@ export function resolveChannelSyncLabel(cell, meta = null) {
   return 'HotelRunner';
 }
 
-/** Takvim çubuğu etiketi — web: isim, diğer her şey (iCal): kanal */
+/** Takvim çubuğu etiketi — her zaman kişi adı (kanal/platform adı değil) */
 export function resolveCalendarDisplayLabel(cell, meta = null) {
   const record = buildReservationRecord(cell, meta);
-
-  if (isWebSiteReservation(cell)) {
-    return resolveWebsiteGuestName(record) || 'Misafir';
-  }
-
-  return resolveChannelSyncLabel(cell, meta);
+  return resolveGuestNameFromRecord(record) || 'Misafir';
 }
 
 /** Takvim grid — web gri + isim, iCal/kanal mavi + HotelRunner */

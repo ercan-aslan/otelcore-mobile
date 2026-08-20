@@ -66,7 +66,7 @@ function DayCell({
     cell?.type === 'reservation'
       ? cell.bar_color || getCalendarReservationColor(cell.channel, cell)
       : COLORS.primary;
-  const resLabel = cell?.type === 'reservation' ? (cell.label || 'HotelRunner') : cell?.label;
+  const resLabel = cell?.type === 'reservation' ? (cell.label || 'Misafir') : cell?.label;
 
   let bg = day.is_today ? '#fff3cd' : day.is_past ? '#f8f9fa' : COLORS.surface;
   if (role === 'start' || role === 'end') bg = 'rgba(13, 110, 253, 0.38)';
