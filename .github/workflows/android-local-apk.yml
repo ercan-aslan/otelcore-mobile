@@ -1,0 +1,70 @@
+name: Android Local APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: EAS profile (preview = APK)
+        required: false
+        default: preview
+
+permissions:
+  contents: read
+
+jobs:
+  android-local-apk:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate EXPO_TOKEN
+        run: |
+          if [ -z "${EXPO_TOKEN}" ]; then
+            echo "Missing EXPO_TOKEN secret."
+            exit 1
+          fi
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Use remote Android credentials for local APK
+        run: |
+          if [ -f credentials.json ]; then
+            mv credentials.json credentials.ios.json.bak
+          fi
+
+      - name: Android local APK build
+        run: |
+          eas build \
+            --platform android \
+            --local \
+            --profile "${{ inputs.profile }}" \
+            --non-interactive \
+            --output "./OtelCore.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: otelcore-android-apk
+          path: OtelCore.apk
+          if-no-files-found: error
+          retention-days: 30
