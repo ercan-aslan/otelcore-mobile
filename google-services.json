@@ -1,13 +1,32 @@
 {
   "project_info": {
     "project_number": "963650837510",
-    "project_id": "MyStoneINN-3d9b2",
-    "storage_bucket": "MyStoneINN-3d9b2.firebasestorage.app"
+    "project_id": "bdpilates-3d9b2",
+    "storage_bucket": "bdpilates-3d9b2.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
         "mobilesdk_app_id": "1:963650837510:android:0e854bdf147ca1f71a7787",
+        "android_client_info": {
+          "package_name": "com.mystoneinn.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcioZjguXrl62awMCpdfV0hmN0SCdyu_s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:963650837510:android:fcd7cb68465d92d01a7787",
         "android_client_info": {
           "package_name": "com.otelcore.app"
         }
@@ -26,9 +45,47 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:963650837510:android:26a5393671fb87ce1a7787",
+        "android_client_info": {
+          "package_name": "com.powerflexy.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcioZjguXrl62awMCpdfV0hmN0SCdyu_s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:963650837510:android:e5d43db22c56ef571a7787",
+        "android_client_info": {
+          "package_name": "com.powerflexy.flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcioZjguXrl62awMCpdfV0hmN0SCdyu_s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:963650837510:android:0cb608dbf3b7712f1a7787",
         "android_client_info": {
-          "package_name": "com.otelcore.app"
+          "package_name": "tr.com.bdpilates.app"
         }
       },
       "oauth_client": [],
