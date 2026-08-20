@@ -380,6 +380,7 @@ export async function consumeInitialNotificationAction() {
   }
 
   if (payload.type === 'case_assigned') {
+    await clearPresentedNotificationsAndBadge();
     return { type: 'open_case', caseId: payload.case_id };
   }
 
@@ -531,6 +532,7 @@ export function listenForNotificationResponses(onAction) {
     }
 
     if (payload.type === 'case_assigned') {
+      await clearPresentedNotificationsAndBadge();
       onAction?.({ type: 'open_case', caseId: payload.case_id });
       return;
     }
@@ -547,7 +549,8 @@ export function listenForNotificationResponses(onAction) {
 export function listenForAppStateBadgeSync() {
   const onChange = (state) => {
     if (state === 'active') {
-      syncBadgeFromPresentedNotifications().catch(() => {});
+      // Ön plandayken kalan tepsi bildirimlerini de temizle — balon takılı kalmasın.
+      clearPresentedNotificationsAndBadge().catch(() => {});
     }
   };
   const sub = AppState.addEventListener('change', onChange);
