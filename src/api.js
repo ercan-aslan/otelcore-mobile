@@ -795,13 +795,14 @@ export const RoomsAPI = {
 
 export const HousekeepingAPI = {
   list: () => apiRequest('/housekeeping'),
-  updateUnit: (unitId, status) =>
+  updateUnit: (unitId, status, oosReason = '') =>
     apiRequest('/housekeeping_actions', {
       method: 'POST',
       body: JSON.stringify({
         action: 'update_unit',
         unit_id: unitId,
         housekeeping_status: status,
+        oos_reason: oosReason,
       }),
     }),
 };
