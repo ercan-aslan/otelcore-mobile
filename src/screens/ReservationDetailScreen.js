@@ -323,7 +323,6 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
     { key: 'konaklama', label: 'Konaklama', shortLabel: 'Oda' },
     { key: 'misafir', label: 'Misafir', shortLabel: 'Misafir' },
     { key: 'odeme', label: 'Ödeme', shortLabel: 'Ödeme' },
-    { key: 'islem', label: 'İşlemler', shortLabel: 'İşlem' },
   ];
 
   const loader = useCallback(
@@ -560,14 +559,59 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
             <>
               <HeroCard res={res} channel={channel} nights={nights} />
               <PriceSummaryRow res={res} />
-              <CouponSummaryCard res={res} />
-              {res.unit_code || res.room_name ? (
-                <View style={styles.surfaceCard}>
-                  <SectionTitle icon="bed-outline" title="Oda" />
-                  <InfoRow label="Oda tipi" value={res.room_name} />
-                  <InfoRow label="Oda no" value={res.unit_code || 'Atanmadı'} last />
+
+              {!isPartial && isCancelled ? (
+                <View style={styles.actionsCard}>
+                  <SectionTitle icon="arrow-undo-outline" title="İptal Geri Alma" />
+                  {res.cancel_reason ? (
+                    <Text style={styles.cancelReason} numberOfLines={4}>
+                      İptal nedeni: {res.cancel_reason}
+                    </Text>
+                  ) : null}
+                  {res.cancelled_at_formatted ? (
+                    <Text style={styles.dateHint}>İptal: {res.cancelled_at_formatted}</Text>
+                  ) : null}
+                  <ConfirmButton
+                    label="İptali Geri Al"
+                    confirmLabel="Evet, geri al"
+                    cancelLabel="Vazgeç"
+                    color={COLORS.success}
+                    busy={busy === 'restore'}
+                    onConfirm={onRestore}
+                  />
                 </View>
               ) : null}
+
+              {!isPartial && canEditStay ? (
+                <View style={styles.actionsCard}>
+                  <SectionTitle icon="flash-outline" title="Hızlı İşlemler" />
+                  {hasUnits && !unitId ? (
+                    <Text style={styles.mutedHint}>
+                      Check-in öncesi Oda sekmesinden oda numarası seçebilirsiniz.
+                    </Text>
+                  ) : null}
+                  <SubmitButton
+                    title="Check-in Yap"
+                    color={COLORS.success}
+                    loading={busy === 'check_in'}
+                    onPress={() => runAction('check_in', { assigned_unit_id: Number(unitId || 0) })}
+                  />
+                  <SubmitButton
+                    title="Check-out Yap"
+                    color={COLORS.info}
+                    loading={busy === 'check_out'}
+                    onPress={() => runAction('check_out')}
+                  />
+                  <SubmitButton
+                    title="Rezervasyonu İptal Et"
+                    color={COLORS.danger}
+                    loading={busy === 'cancel'}
+                    onPress={onCancel}
+                  />
+                </View>
+              ) : null}
+
+              <CouponSummaryCard res={res} />
               {res.note ? (
                 <View style={styles.surfaceCard}>
                   <SectionTitle icon="document-text-outline" title="Not" />
@@ -744,75 +788,6 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
                       <Text style={styles.listRowAmount}>{money(res, ex.amount)}</Text>
                     </View>
                   ))}
-                </View>
-              ) : null}
-            </>
-          ) : null}
-
-          {detailTab === 'islem' ? (
-            <>
-              {!isPartial && isCancelled ? (
-                <View style={styles.actionsCard}>
-                  <SectionTitle icon="arrow-undo-outline" title="İptal Geri Alma" />
-                  {res.cancel_reason ? (
-                    <Text style={styles.cancelReason} numberOfLines={4}>
-                      İptal nedeni: {res.cancel_reason}
-                    </Text>
-                  ) : null}
-                  {res.cancelled_at_formatted ? (
-                    <Text style={styles.dateHint}>İptal: {res.cancelled_at_formatted}</Text>
-                  ) : null}
-                  <ConfirmButton
-                    label="İptali Geri Al"
-                    confirmLabel="Evet, geri al"
-                    cancelLabel="Vazgeç"
-                    color={COLORS.success}
-                    busy={busy === 'restore'}
-                    onConfirm={onRestore}
-                  />
-                </View>
-              ) : null}
-
-              {!isPartial && canEditStay ? (
-                <View style={styles.actionsCard}>
-                  <SectionTitle icon="flash-outline" title="Hızlı İşlemler" />
-                  {hasUnits && !unitId ? (
-                    <Text style={styles.mutedHint}>
-                      Check-in öncesi Konaklama sekmesinden oda numarası seçebilirsiniz.
-                    </Text>
-                  ) : null}
-                  <SubmitButton
-                    title="Check-in Yap"
-                    color={COLORS.success}
-                    loading={busy === 'check_in'}
-                    onPress={() => runAction('check_in', { assigned_unit_id: Number(unitId || 0) })}
-                  />
-                  <SubmitButton
-                    title="Check-out Yap"
-                    color={COLORS.info}
-                    loading={busy === 'check_out'}
-                    onPress={() => runAction('check_out')}
-                  />
-                  <SubmitButton
-                    title="Rezervasyonu İptal Et"
-                    color={COLORS.danger}
-                    loading={busy === 'cancel'}
-                    onPress={onCancel}
-                  />
-                </View>
-              ) : null}
-
-              {!isPartial && !isCancelled && res.status === 'completed' ? (
-                <View style={styles.surfaceCard}>
-                  <Text style={styles.mutedHint}>Bu rezervasyon tamamlandı. Düzenleme kapalı.</Text>
-                </View>
-              ) : null}
-
-              {isPartial ? (
-                <View style={styles.surfaceCard}>
-                  <Text style={styles.mutedHint}>
-                    Önizleme modunda işlemler kullanılamaz. API güncellemesi gerekir.
-                  </Text>
                 </View>
               ) : null}
             </>
