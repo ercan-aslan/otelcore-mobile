@@ -200,16 +200,6 @@ function PriceSummaryRow({ res }) {
   );
 }
 
-function formatCouponDiscountLabel(type, value, res) {
-  if (type === 'percent') {
-    return `%${Number(value || 0)}`;
-  }
-  if (type === 'fixed') {
-    return money(res || {}, value);
-  }
-  return '—';
-}
-
 function resolveCouponDiscount(res) {
   const stored = Number(res.discount_amount || 0);
   if (stored > 0) {
@@ -237,47 +227,6 @@ function hasCouponInfo(res) {
     res?.has_coupon ||
       String(res?.coupon_code || '').trim() ||
       Number(res?.discount_amount || 0) > 0
-  );
-}
-
-function CouponSummaryCard({ res }) {
-  const used = hasCouponInfo(res);
-
-  if (!used) {
-    return (
-      <View style={styles.surfaceCard}>
-        <SectionTitle icon="ticket-outline" title="Kupon" />
-        <InfoRow label="Durum" value="Kupon kullanılmadı" last />
-      </View>
-    );
-  }
-
-  const code = String(res.coupon_code || '').trim() || '—';
-  const discountAmount = resolveCouponDiscount(res);
-  const discountLabel = formatCouponDiscountLabel(res.discount_type, res.discount_value, res);
-
-  return (
-    <View style={styles.surfaceCard}>
-      <SectionTitle icon="ticket-outline" title="Kupon Kullanımı" />
-      <InfoRow label="Durum" value="Kupon uygulandı" />
-      <InfoRow label="Kupon Kodu" value={code} />
-      <InfoRow
-        label="İndirim Tipi"
-        value={
-          res.discount_type === 'percent'
-            ? 'Yüzde'
-            : res.discount_type === 'fixed'
-              ? 'Sabit Tutar'
-              : '—'
-        }
-      />
-      <InfoRow label="İndirim Oranı / Tutarı" value={discountLabel} />
-      <InfoRow
-        label="Uygulanan İndirim"
-        value={discountAmount > 0 ? `-${money(res, discountAmount)}` : '—'}
-        last
-      />
-    </View>
   );
 }
 
@@ -437,9 +386,15 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
     value: String(u.unit_id),
     label: u.busy ? `${u.unit_code} (dolu)` : u.unit_code,
   }));
-  const hasUnits = (res.units || []).length > 0;
+  const unitCount = (res.units || []).length;
+  const hasUnits = unitCount > 0;
+  const needsUnitPicker = unitCount > 1;
   const canEditStay = !isPartial && !isCancelled && res.status !== 'completed';
-  const showUnitPicker = hasUnits && canEditStay;
+  const showUnitPicker = needsUnitPicker && canEditStay;
+  const soleUnitCode =
+    unitCount === 1
+      ? String((res.units[0] && res.units[0].unit_code) || res.unit_code || '').trim()
+      : String(res.unit_code || '').trim();
 
   const onChangeRoom = async () => {
     if (!newRoomId) {
@@ -582,7 +537,7 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
               {!isPartial && canEditStay ? (
                 <View style={styles.actionsCard}>
                   <SectionTitle icon="flash-outline" title="Hızlı İşlemler" />
-                  {hasUnits && !unitId ? (
+                  {needsUnitPicker && !unitId ? (
                     <Text style={styles.mutedHint}>
                       Check-in öncesi Oda sekmesinden oda numarası seçebilirsiniz.
                     </Text>
@@ -608,7 +563,6 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
                 </View>
               ) : null}
 
-              <CouponSummaryCard res={res} />
               {res.note ? (
                 <View style={styles.surfaceCard}>
                   <SectionTitle icon="document-text-outline" title="Not" />
@@ -620,6 +574,41 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
 
           {detailTab === 'konaklama' ? (
             <>
+              {canEditStay && roomOptions.length > 0 ? (
+                <FormCard title="Oda Tipi" icon="🚪" borderColor={COLORS.info}>
+                  <SelectField
+                    label="Oda tipi"
+                    value={newRoomId}
+                    options={roomOptions}
+                    onChange={setNewRoomId}
+                  />
+                  {!needsUnitPicker && soleUnitCode ? (
+                    <InfoRow label="Oda no" value={soleUnitCode} last />
+                  ) : null}
+                  {!needsUnitPicker && hasUnits && !soleUnitCode ? (
+                    <Text style={styles.mutedHint}>
+                      Bu tipte tek oda var; kaydedince numara otomatik atanır.
+                    </Text>
+                  ) : null}
+                  <SubmitButton
+                    title="Oda Tipini Kaydet"
+                    color={COLORS.info}
+                    loading={busy === 'change_room'}
+                    onPress={onChangeRoom}
+                  />
+                </FormCard>
+              ) : (
+                <View style={styles.surfaceCard}>
+                  <SectionTitle icon="bed-outline" title="Oda" />
+                  <InfoRow label="Oda tipi" value={res.room_name} />
+                  <InfoRow
+                    label="Oda no"
+                    value={soleUnitCode || (hasUnits ? 'Atanmadı' : '—')}
+                    last
+                  />
+                </View>
+              )}
+
               {showUnitPicker ? (
                 <View style={styles.surfaceCard}>
                   <SectionTitle icon="keypad-outline" title="Oda numarası" />
@@ -641,16 +630,7 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
                     }
                   />
                 </View>
-              ) : (
-                <View style={styles.surfaceCard}>
-                  <SectionTitle icon="keypad-outline" title="Oda numarası" />
-                  <InfoRow
-                    label="Oda no"
-                    value={res.unit_code || (hasUnits ? 'Atanmadı' : 'Bu oda tipinde numara yok')}
-                    last
-                  />
-                </View>
-              )}
+              ) : null}
 
               {canEditStay ? (
                 <FormCard title="Tarih Değiştir" icon="📅" borderColor={COLORS.warning}>
@@ -681,23 +661,6 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
                     color={COLORS.warning}
                     loading={busy === 'change_dates'}
                     onPress={onChangeDates}
-                  />
-                </FormCard>
-              ) : null}
-
-              {canEditStay && roomOptions.length > 0 ? (
-                <FormCard title="Oda Tipi Değiştir" icon="🚪" borderColor={COLORS.info}>
-                  <SelectField
-                    label="Yeni Oda"
-                    value={newRoomId}
-                    options={roomOptions}
-                    onChange={setNewRoomId}
-                  />
-                  <SubmitButton
-                    title="Odayı Taşı"
-                    color={COLORS.info}
-                    loading={busy === 'change_room'}
-                    onPress={onChangeRoom}
                   />
                 </FormCard>
               ) : null}
