@@ -14,6 +14,7 @@ import StayingGuestsCard from '../components/StayingGuestsCard';
 import SelectField, { SubmitButton } from '../components/SelectField';
 import DateInput from '../components/DateInput';
 import AppPressable, { ConfirmButton } from '../components/AppPressable';
+import TabPills from '../components/TabPills';
 import { ReservationAPI, snapshotToReservation, isReservationPreviewMode, fetchMobileApiBuild, EXPECTED_API_BUILD } from '../api';
 import { useFetch } from '../hooks/useFetch';
 import { COLORS } from '../theme';
@@ -118,11 +119,11 @@ function HeroCard({ res, channel, nights }) {
         <View style={[styles.channelPill, { backgroundColor: channel.color }]}>
           <Text style={styles.channelPillText}>{channel.label}</Text>
         </View>
-        {res.room_name ? (
+        {res.room_name || res.unit_code ? (
           <View style={styles.roomPill}>
             <Ionicons name="bed-outline" size={13} color="#fff" />
             <Text style={styles.roomPillText} numberOfLines={1}>
-              {res.room_name}
+              {[res.room_name, res.unit_code].filter(Boolean).join(' · ')}
             </Text>
           </View>
         ) : null}
@@ -310,11 +311,20 @@ function GuestSummaryCard({ res }) {
 
 export default function ReservationDetailScreen({ reservationId, initialSnapshot, onClose }) {
   const [busy, setBusy] = useState('');
+  const [detailTab, setDetailTab] = useState('ozet');
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: 'cash' });
   const [newRoomId, setNewRoomId] = useState('');
   const [unitId, setUnitId] = useState('');
   const [dateForm, setDateForm] = useState({ check_in: '', check_out: '' });
   const [serverBuild, setServerBuild] = useState('');
+
+  const DETAIL_TABS = [
+    { key: 'ozet', label: 'Özet', shortLabel: 'Özet' },
+    { key: 'konaklama', label: 'Konaklama', shortLabel: 'Oda' },
+    { key: 'misafir', label: 'Misafir', shortLabel: 'Misafir' },
+    { key: 'odeme', label: 'Ödeme', shortLabel: 'Ödeme' },
+    { key: 'islem', label: 'İşlemler', shortLabel: 'İşlem' },
+  ];
 
   const loader = useCallback(
     () => ReservationAPI.get(reservationId, initialSnapshot),
@@ -427,10 +437,12 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
     label: r.room_name,
   }));
   const unitOptions = (res.units || []).map((u) => ({
-    value: u.unit_id,
+    value: String(u.unit_id),
     label: u.busy ? `${u.unit_code} (dolu)` : u.unit_code,
   }));
-  const showUnitPicker = (res.units || []).length > 1;
+  const hasUnits = (res.units || []).length > 0;
+  const canEditStay = !isPartial && !isCancelled && res.status !== 'completed';
+  const showUnitPicker = hasUnits && canEditStay;
 
   const onChangeRoom = async () => {
     if (!newRoomId) {
@@ -542,44 +554,64 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
             </View>
           ) : null}
 
-          <HeroCard res={res} channel={channel} nights={nights} />
+          <TabPills tabs={DETAIL_TABS} activeKey={detailTab} onChange={setDetailTab} />
 
-          {showUnitPicker ? (
-            <View style={styles.surfaceCard}>
-              <SectionTitle icon="keypad-outline" title="Oda no" />
-              <SelectField
-                placeholder="Oda numarası seçin"
-                value={unitId}
-                options={unitOptions}
-                onChange={setUnitId}
-              />
-              <SubmitButton
-                title="Oda no kaydet"
-                loading={busy === 'assign_unit'}
-                onPress={() =>
-                  runAction(
-                    'assign_unit',
-                    { assigned_unit_id: Number(unitId || 0) },
-                    'Oda numarası kaydedildi.'
-                  )
-                }
-              />
-            </View>
-          ) : res.unit_code ? (
-            <View style={styles.surfaceCard}>
-              <InfoRow label="Oda no" value={res.unit_code} last />
-            </View>
+          {detailTab === 'ozet' ? (
+            <>
+              <HeroCard res={res} channel={channel} nights={nights} />
+              <PriceSummaryRow res={res} />
+              <CouponSummaryCard res={res} />
+              {res.unit_code || res.room_name ? (
+                <View style={styles.surfaceCard}>
+                  <SectionTitle icon="bed-outline" title="Oda" />
+                  <InfoRow label="Oda tipi" value={res.room_name} />
+                  <InfoRow label="Oda no" value={res.unit_code || 'Atanmadı'} last />
+                </View>
+              ) : null}
+              {res.note ? (
+                <View style={styles.surfaceCard}>
+                  <SectionTitle icon="document-text-outline" title="Not" />
+                  <Text style={styles.noteBody}>{res.note}</Text>
+                </View>
+              ) : null}
+            </>
           ) : null}
 
-          <PriceSummaryRow res={res} />
-
-          <CouponSummaryCard res={res} />
-
-          {isPartial ? (
-            <GuestSummaryCard res={res} />
-          ) : (
+          {detailTab === 'konaklama' ? (
             <>
-              {!isCancelled && res.status !== 'completed' ? (
+              {showUnitPicker ? (
+                <View style={styles.surfaceCard}>
+                  <SectionTitle icon="keypad-outline" title="Oda numarası" />
+                  <SelectField
+                    placeholder="Oda numarası seçin"
+                    value={unitId}
+                    options={unitOptions}
+                    onChange={setUnitId}
+                  />
+                  <SubmitButton
+                    title="Oda no kaydet"
+                    loading={busy === 'assign_unit'}
+                    onPress={() =>
+                      runAction(
+                        'assign_unit',
+                        { assigned_unit_id: Number(unitId || 0) },
+                        'Oda numarası kaydedildi.'
+                      )
+                    }
+                  />
+                </View>
+              ) : (
+                <View style={styles.surfaceCard}>
+                  <SectionTitle icon="keypad-outline" title="Oda numarası" />
+                  <InfoRow
+                    label="Oda no"
+                    value={res.unit_code || (hasUnits ? 'Atanmadı' : 'Bu oda tipinde numara yok')}
+                    last
+                  />
+                </View>
+              )}
+
+              {canEditStay ? (
                 <FormCard title="Tarih Değiştir" icon="📅" borderColor={COLORS.warning}>
                   <View style={styles.row2}>
                     <View style={styles.half}>
@@ -612,8 +644,8 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
                 </FormCard>
               ) : null}
 
-              {!isCancelled && res.status !== 'completed' && roomOptions.length > 0 ? (
-                <FormCard title="Oda Değiştir" icon="🚪" borderColor={COLORS.info}>
+              {canEditStay && roomOptions.length > 0 ? (
+                <FormCard title="Oda Tipi Değiştir" icon="🚪" borderColor={COLORS.info}>
                   <SelectField
                     label="Yeni Oda"
                     value={newRoomId}
@@ -628,130 +660,162 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
                   />
                 </FormCard>
               ) : null}
+            </>
+          ) : null}
 
+          {detailTab === 'misafir' ? (
+            isPartial ? (
+              <GuestSummaryCard res={res} />
+            ) : (
               <StayingGuestsCard
                 reservationId={reservationId}
                 initialGuests={res.staying_guests || []}
                 adults={res.adults || 1}
                 onSaved={refresh}
               />
+            )
+          ) : null}
 
-              <FormCard title="Ödeme Ekle" icon="💳" borderColor={COLORS.success}>
-                <FormLabel>Tutar ({resolveReservationCurrency(res) === 'TRY' ? '₺' : '€'})</FormLabel>
-                <FormInput
-                  keyboardType="decimal-pad"
-                  placeholder="0.00"
-                  value={paymentForm.amount}
-                  onChangeText={(v) => setPaymentForm((p) => ({ ...p, amount: v }))}
-                />
-                <FormLabel>Ödeme Yöntemi</FormLabel>
-                <SelectField
-                  value={paymentForm.payment_method}
-                  options={PAYMENT_METHODS}
-                  onChange={(v) => setPaymentForm((p) => ({ ...p, payment_method: v }))}
-                />
-                <SubmitButton
-                  title="Ödemeyi Kaydet"
-                  color={COLORS.success}
-                  loading={busy === 'add_payment'}
-                  onPress={onAddPayment}
-                />
-              </FormCard>
+          {detailTab === 'odeme' ? (
+            <>
+              {!isPartial && canEditStay ? (
+                <FormCard title="Ödeme Ekle" icon="💳" borderColor={COLORS.success}>
+                  <FormLabel>Tutar ({resolveReservationCurrency(res) === 'TRY' ? '₺' : '€'})</FormLabel>
+                  <FormInput
+                    keyboardType="decimal-pad"
+                    placeholder="0.00"
+                    value={paymentForm.amount}
+                    onChangeText={(v) => setPaymentForm((p) => ({ ...p, amount: v }))}
+                  />
+                  <FormLabel>Ödeme Yöntemi</FormLabel>
+                  <SelectField
+                    value={paymentForm.payment_method}
+                    options={PAYMENT_METHODS}
+                    onChange={(v) => setPaymentForm((p) => ({ ...p, payment_method: v }))}
+                  />
+                  <SubmitButton
+                    title="Ödemeyi Kaydet"
+                    color={COLORS.success}
+                    loading={busy === 'add_payment'}
+                    onPress={onAddPayment}
+                  />
+                </FormCard>
+              ) : null}
+
+              <PriceSummaryRow res={res} />
+
+              {(res.payments || []).length > 0 ? (
+                <View style={styles.surfaceCard}>
+                  <SectionTitle icon="list-outline" title="Ödeme Geçmişi" />
+                  {res.payments.map((p, index) => (
+                    <View
+                      key={String(p.payment_id)}
+                      style={[
+                        styles.listRow,
+                        index === res.payments.length - 1 && styles.listRowLast,
+                      ]}
+                    >
+                      <View style={styles.listRowLeft}>
+                        <Ionicons name="card-outline" size={16} color={COLORS.textSecondary} />
+                        <Text style={styles.listRowTitle}>{p.payment_method}</Text>
+                      </View>
+                      <Text style={styles.listRowAmount}>
+                        {formatMoney(p.amount, p.currency || resolveReservationCurrency(res))}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.mutedHint}>Henüz ödeme kaydı yok.</Text>
+              )}
+
+              {(res.extras || []).length > 0 ? (
+                <View style={styles.surfaceCard}>
+                  <SectionTitle icon="add-circle-outline" title="Ekstralar" />
+                  {res.extras.map((ex, index) => (
+                    <View
+                      key={String(ex.id)}
+                      style={[
+                        styles.listRow,
+                        index === res.extras.length - 1 && styles.listRowLast,
+                      ]}
+                    >
+                      <Text style={styles.listRowTitle}>{ex.description}</Text>
+                      <Text style={styles.listRowAmount}>{money(res, ex.amount)}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
             </>
-          )}
+          ) : null}
 
-          {(res.payments || []).length > 0 ? (
-            <View style={styles.surfaceCard}>
-              <SectionTitle icon="list-outline" title="Ödeme Geçmişi" />
-              {res.payments.map((p, index) => (
-                <View
-                  key={String(p.payment_id)}
-                  style={[
-                    styles.listRow,
-                    index === res.payments.length - 1 && styles.listRowLast,
-                  ]}
-                >
-                  <View style={styles.listRowLeft}>
-                    <Ionicons name="card-outline" size={16} color={COLORS.textSecondary} />
-                    <Text style={styles.listRowTitle}>{p.payment_method}</Text>
-                  </View>
-                  <Text style={styles.listRowAmount}>
-                    {formatMoney(p.amount, p.currency || resolveReservationCurrency(res))}
+          {detailTab === 'islem' ? (
+            <>
+              {!isPartial && isCancelled ? (
+                <View style={styles.actionsCard}>
+                  <SectionTitle icon="arrow-undo-outline" title="İptal Geri Alma" />
+                  {res.cancel_reason ? (
+                    <Text style={styles.cancelReason} numberOfLines={4}>
+                      İptal nedeni: {res.cancel_reason}
+                    </Text>
+                  ) : null}
+                  {res.cancelled_at_formatted ? (
+                    <Text style={styles.dateHint}>İptal: {res.cancelled_at_formatted}</Text>
+                  ) : null}
+                  <ConfirmButton
+                    label="İptali Geri Al"
+                    confirmLabel="Evet, geri al"
+                    cancelLabel="Vazgeç"
+                    color={COLORS.success}
+                    busy={busy === 'restore'}
+                    onConfirm={onRestore}
+                  />
+                </View>
+              ) : null}
+
+              {!isPartial && canEditStay ? (
+                <View style={styles.actionsCard}>
+                  <SectionTitle icon="flash-outline" title="Hızlı İşlemler" />
+                  {hasUnits && !unitId ? (
+                    <Text style={styles.mutedHint}>
+                      Check-in öncesi Konaklama sekmesinden oda numarası seçebilirsiniz.
+                    </Text>
+                  ) : null}
+                  <SubmitButton
+                    title="Check-in Yap"
+                    color={COLORS.success}
+                    loading={busy === 'check_in'}
+                    onPress={() => runAction('check_in', { assigned_unit_id: Number(unitId || 0) })}
+                  />
+                  <SubmitButton
+                    title="Check-out Yap"
+                    color={COLORS.info}
+                    loading={busy === 'check_out'}
+                    onPress={() => runAction('check_out')}
+                  />
+                  <SubmitButton
+                    title="Rezervasyonu İptal Et"
+                    color={COLORS.danger}
+                    loading={busy === 'cancel'}
+                    onPress={onCancel}
+                  />
+                </View>
+              ) : null}
+
+              {!isPartial && !isCancelled && res.status === 'completed' ? (
+                <View style={styles.surfaceCard}>
+                  <Text style={styles.mutedHint}>Bu rezervasyon tamamlandı. Düzenleme kapalı.</Text>
+                </View>
+              ) : null}
+
+              {isPartial ? (
+                <View style={styles.surfaceCard}>
+                  <Text style={styles.mutedHint}>
+                    Önizleme modunda işlemler kullanılamaz. API güncellemesi gerekir.
                   </Text>
                 </View>
-              ))}
-            </View>
-          ) : null}
-
-          {(res.extras || []).length > 0 ? (
-            <View style={styles.surfaceCard}>
-              <SectionTitle icon="add-circle-outline" title="Ekstralar" />
-              {res.extras.map((ex, index) => (
-                <View
-                  key={String(ex.id)}
-                  style={[
-                    styles.listRow,
-                    index === res.extras.length - 1 && styles.listRowLast,
-                  ]}
-                >
-                  <Text style={styles.listRowTitle}>{ex.description}</Text>
-                  <Text style={styles.listRowAmount}>{money(res, ex.amount)}</Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-
-          {res.note ? (
-            <View style={styles.surfaceCard}>
-              <SectionTitle icon="document-text-outline" title="Not" />
-              <Text style={styles.noteBody}>{res.note}</Text>
-            </View>
-          ) : null}
-
-          {!isPartial && isCancelled ? (
-            <View style={styles.actionsCard}>
-              <SectionTitle icon="arrow-undo-outline" title="İptal Geri Alma" />
-              {res.cancel_reason ? (
-                <Text style={styles.cancelReason} numberOfLines={4}>
-                  İptal nedeni: {res.cancel_reason}
-                </Text>
               ) : null}
-              {res.cancelled_at_formatted ? (
-                <Text style={styles.dateHint}>İptal: {res.cancelled_at_formatted}</Text>
-              ) : null}
-              <ConfirmButton
-                label="İptali Geri Al"
-                confirmLabel="Evet, geri al"
-                cancelLabel="Vazgeç"
-                color={COLORS.success}
-                busy={busy === 'restore'}
-                onConfirm={onRestore}
-              />
-            </View>
-          ) : null}
-
-          {!isPartial && !isCancelled && res.status !== 'completed' ? (
-            <View style={styles.actionsCard}>
-              <SectionTitle icon="flash-outline" title="Hızlı İşlemler" />
-              <SubmitButton
-                title="Check-in Yap"
-                color={COLORS.success}
-                loading={busy === 'check_in'}
-                onPress={() => runAction('check_in', { assigned_unit_id: Number(unitId || 0) })}
-              />
-              <SubmitButton
-                title="Check-out Yap"
-                color={COLORS.info}
-                loading={busy === 'check_out'}
-                onPress={() => runAction('check_out')}
-              />
-              <SubmitButton
-                title="Rezervasyonu İptal Et"
-                color={COLORS.danger}
-                loading={busy === 'cancel'}
-                onPress={onCancel}
-              />
-            </View>
+            </>
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>

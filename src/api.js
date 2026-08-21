@@ -164,7 +164,7 @@ export function normalizeFetchError(err, fallback = 'Veri yüklenemedi.') {
   return msg;
 }
 
-export const EXPECTED_API_BUILD = '20260819-cases-v4';
+export const EXPECTED_API_BUILD = '20260821-res-units-v1';
 
 function isFullReservationRow(row) {
   if (!row || Array.isArray(row)) {
