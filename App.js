@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   AppState,
+  BackHandler,
   Keyboard,
   Platform,
   StatusBar,
@@ -239,6 +240,35 @@ function MainShell({ admin, onLogout, branding }) {
       onHide.remove();
     };
   }, []);
+
+  // Android donanım geri: önce detay katmanını kapat, sonra ana sekmeye dön
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return undefined;
+    }
+    const onHardwareBack = () => {
+      if (reservationDetail) {
+        setReservationDetail(null);
+        return true;
+      }
+      if (paymentDetail) {
+        setPaymentDetail(null);
+        return true;
+      }
+      if (caseDetail) {
+        setCaseDetail(null);
+        return true;
+      }
+      const home = getDefaultScreen(admin);
+      if (activeScreen !== home) {
+        setActiveScreen(home);
+        return true;
+      }
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
+    return () => sub.remove();
+  }, [admin, activeScreen, reservationDetail, paymentDetail, caseDetail]);
 
   const navigation = useMemo(
     () => ({
