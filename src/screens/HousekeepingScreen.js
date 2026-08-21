@@ -41,15 +41,7 @@ export default function HousekeepingScreen() {
 
   const { data: units, loading, refreshing, error, refresh } = useFetch(loader);
 
-  const groups = useMemo(() => {
-    const map = new Map();
-    (units || []).forEach((unit) => {
-      const type = unit.room_type || 'Diğer';
-      if (!map.has(type)) map.set(type, []);
-      map.get(type).push(unit);
-    });
-    return Array.from(map.entries());
-  }, [units]);
+  const flatUnits = useMemo(() => units || [], [units]);
 
   const openUnit = (unit) => {
     setSelected(unit);
@@ -88,52 +80,47 @@ export default function HousekeepingScreen() {
       {(units || []).length === 0 ? (
         <Text style={styles.empty}>Aktif oda birimi yok.</Text>
       ) : (
-        groups.map(([type, list]) => (
-          <View key={type} style={styles.group}>
-            <Text style={styles.groupTitle}>{type}</Text>
-            <View style={styles.list}>
-              {list.map((unit) => {
-                const st = unit.display_status || unit.housekeeping_status || 'clean';
-                const meta = HK_META[st] || HK_META.clean;
-                const summary = st === 'oos' ? reasonSummary(unit.oos_reason) : '';
-                return (
-                  <Pressable
-                    key={String(unit.unit_id)}
-                    onPress={() => openUnit(unit)}
-                    style={[styles.row, { backgroundColor: meta.bg }]}
-                  >
-                    <View style={styles.rowMain}>
-                      <Text style={[styles.code, { color: meta.fg }]} numberOfLines={1}>
-                        {unit.unit_code}
+        <View style={styles.list}>
+          {flatUnits.map((unit) => {
+            const st = unit.display_status || unit.housekeeping_status || 'clean';
+            const meta = HK_META[st] || HK_META.clean;
+            const summary = st === 'oos' ? reasonSummary(unit.oos_reason) : '';
+            return (
+              <Pressable
+                key={String(unit.unit_id)}
+                onPress={() => openUnit(unit)}
+                style={[styles.row, { backgroundColor: meta.bg }]}
+              >
+                <View style={styles.rowMain}>
+                  <Text style={[styles.code, { color: meta.fg }]} numberOfLines={1}>
+                    {unit.unit_code}
+                  </Text>
+                  <Text style={[styles.room, { color: meta.fg }]} numberOfLines={1}>
+                    {unit.room_name}
+                  </Text>
+                  {st === 'occupied' ? (
+                    <>
+                      <Text style={[styles.guest, { color: meta.fg }]} numberOfLines={1}>
+                        {unit.guest_name || 'Misafir'}
                       </Text>
-                      <Text style={[styles.room, { color: meta.fg }]} numberOfLines={1}>
-                        {unit.room_name}
-                      </Text>
-                      {st === 'occupied' ? (
-                        <>
-                          <Text style={[styles.guest, { color: meta.fg }]} numberOfLines={1}>
-                            {unit.guest_name || 'Misafir'}
-                          </Text>
-                          {unit.check_out_formatted ? (
-                            <Text style={[styles.metaLine, { color: meta.fg }]} numberOfLines={1}>
-                              Çıkış: {unit.check_out_formatted}
-                            </Text>
-                          ) : null}
-                        </>
-                      ) : null}
-                      {summary ? (
+                      {unit.check_out_formatted ? (
                         <Text style={[styles.metaLine, { color: meta.fg }]} numberOfLines={1}>
-                          {summary}
+                          Çıkış: {unit.check_out_formatted}
                         </Text>
                       ) : null}
-                    </View>
-                    <Text style={[styles.badge, { color: meta.fg }]}>{meta.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ))
+                    </>
+                  ) : null}
+                  {summary ? (
+                    <Text style={[styles.metaLine, { color: meta.fg }]} numberOfLines={1}>
+                      {summary}
+                    </Text>
+                  ) : null}
+                </View>
+                <Text style={[styles.badge, { color: meta.fg }]}>{meta.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       )}
 
       <Modal visible={Boolean(selected)} transparent animationType="fade" onRequestClose={() => setSelected(null)}>
@@ -204,8 +191,6 @@ export default function HousekeepingScreen() {
 
 const styles = StyleSheet.create({
   empty: { color: COLORS.textMuted, textAlign: 'center', padding: 24 },
-  group: { marginBottom: 16 },
-  groupTitle: { fontSize: 14, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 8 },
   list: { gap: 8 },
   row: {
     borderRadius: 12,

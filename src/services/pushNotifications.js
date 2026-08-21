@@ -14,10 +14,10 @@ import {
 export { STORAGE_LAST_RESERVATION_ID_KEY } from './reservationWatcher';
 export { initializeReservationTracking } from './reservationWatcher';
 
-export const STORAGE_PUSH_TOKEN_KEY = '@otelcore_push_token';
-export const STORAGE_PUSH_LAST_ERROR_KEY = '@otelcore_push_last_error';
-const STORAGE_HANDLED_RESPONSE_KEY = '@otelcore_handled_notif_response';
-const STORAGE_LOCAL_NOTIFIED_KEY = '@otelcore_local_notified_ids';
+export const STORAGE_PUSH_TOKEN_KEY = '@mystoneinn_push_token';
+export const STORAGE_PUSH_LAST_ERROR_KEY = '@mystoneinn_push_last_error';
+const STORAGE_HANDLED_RESPONSE_KEY = '@mystoneinn_handled_notif_response';
+const STORAGE_LOCAL_NOTIFIED_KEY = '@mystoneinn_local_notified_ids';
 const RESERVATION_CATEGORY_ID = 'reservation';
 
 function isDismissNotificationResponse(response) {
@@ -479,6 +479,12 @@ export function startReservationPolling({ enableLocalAlerts = false } = {}) {
           continue;
         }
         fresh.push(item);
+      }
+
+      // Gece iCal / baseline sıfırlanması gibi toplu sel: bildirim yağdırma, sadece işaretle
+      if (fresh.length > 5) {
+        await markLocallyNotified(fresh.map((item) => Number(item.reservation_id || item.id)));
+        return;
       }
 
       for (const item of fresh) {
