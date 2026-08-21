@@ -102,16 +102,14 @@ function StatusPill({ status }) {
 function HeroCard({ res, channel, nights }) {
   return (
     <View style={styles.heroCard}>
-      <View style={styles.heroGlow} />
       <View style={styles.heroTopRow}>
-        <View style={styles.heroIdWrap}>
-          <Text style={styles.heroIdLabel}>Rezervasyon</Text>
-          <Text style={styles.heroId}>#{res.reservation_id}</Text>
-        </View>
+        <Text style={styles.heroId} numberOfLines={1}>
+          #{res.reservation_id}
+        </Text>
         <StatusPill status={res.status} />
       </View>
 
-      <Text style={styles.heroGuest} numberOfLines={2}>
+      <Text style={styles.heroGuest} numberOfLines={1}>
         {res.guest_name || 'Misafir'}
       </Text>
 
@@ -121,7 +119,7 @@ function HeroCard({ res, channel, nights }) {
         </View>
         {res.room_name || res.unit_code ? (
           <View style={styles.roomPill}>
-            <Ionicons name="bed-outline" size={13} color="#fff" />
+            <Ionicons name="bed-outline" size={12} color="#fff" />
             <Text style={styles.roomPillText} numberOfLines={1}>
               {[res.room_name, res.unit_code].filter(Boolean).join(' · ')}
             </Text>
@@ -135,7 +133,7 @@ function HeroCard({ res, channel, nights }) {
           <Text style={styles.dateBlockValue}>{formatDate(res.check_in) || '—'}</Text>
         </View>
         <View style={styles.dateArrow}>
-          <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.7)" />
+          <Ionicons name="arrow-forward" size={14} color="rgba(255,255,255,0.7)" />
           <Text style={styles.nightsText}>
             {nights > 0 ? `${nights} gece` : '—'}
           </Text>
@@ -558,7 +556,6 @@ export default function ReservationDetailScreen({ reservationId, initialSnapshot
           {detailTab === 'ozet' ? (
             <>
               <HeroCard res={res} channel={channel} nights={nights} />
-              <PriceSummaryRow res={res} />
 
               {!isPartial && isCancelled ? (
                 <View style={styles.actionsCard}>
@@ -868,94 +865,80 @@ const styles = StyleSheet.create({
   previewBannerEmphasis: { fontWeight: '800', color: COLORS.textPrimary },
   heroCard: {
     backgroundColor: COLORS.primaryDark,
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 14,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
+    marginBottom: 12,
     overflow: 'hidden',
-    shadowColor: COLORS.primaryDark,
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  heroGlow: {
-    position: 'absolute',
-    top: -40,
-    right: -30,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  heroIdWrap: {},
-  heroIdLabel: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '600' },
-  heroId: { fontSize: 22, fontWeight: '900', color: '#fff', marginTop: 2 },
-  heroGuest: { fontSize: 24, fontWeight: '800', color: '#fff', lineHeight: 30 },
+  heroId: { fontSize: 15, fontWeight: '800', color: 'rgba(255,255,255,0.85)' },
+  heroGuest: { fontSize: 18, fontWeight: '800', color: '#fff', lineHeight: 22 },
   heroChannelRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-    marginBottom: 16,
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 8,
   },
   channelPill: {
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  channelPillText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  channelPillText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   roomPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: 'rgba(255,255,255,0.14)',
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     maxWidth: '70%',
   },
-  roomPillText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  roomPillText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   dateTimeline: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 14,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
   dateBlock: { flex: 1 },
   dateBlockLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: 'rgba(255,255,255,0.6)',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   dateBlockValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#fff',
-    marginTop: 4,
+    marginTop: 2,
   },
-  dateArrow: { alignItems: 'center', paddingHorizontal: 8 },
+  dateArrow: { alignItems: 'center', paddingHorizontal: 6 },
   nightsText: {
-    fontSize: 10,
+    fontSize: 9,
     color: 'rgba(255,255,255,0.75)',
-    marginTop: 4,
+    marginTop: 2,
     fontWeight: '600',
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderWidth: 1,
   },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
